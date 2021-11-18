@@ -37,35 +37,40 @@ public class RiotUser
     
     public RiotUser()
     {
-        UserClient = new RestClient()
-        {
-            CookieContainer = UserCookieJar
-        };
-        Authentication = new Authentication(this);
+        UserSetup();
     }
-    public RiotUser(RiotLoginData loginData)
+    public RiotUser(RiotLoginData pLoginData)
     {
-        UserClient = new RestClient()
-        {
-            CookieContainer = UserCookieJar
-        };
-        Authentication = new Authentication(this);
+        loginData = pLoginData; // Set Logindata instance Variable to value of parameter logindata
+
+        UserSetup();
     }
     public RiotUser(RiotLoginData pLoginData, RiotRegion pRegion)
     {
-        UserClient = new RestClient()
-        {
-            CookieContainer = UserCookieJar,
-            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-        };
-        
-        //Create User Module Instance Classes
-        Authentication = new Authentication(this);
-        
         loginData = pLoginData; // Set Logindata instance Variable to value of parameter logindata
         
         UserRegion = pRegion;   // Set UserRegion instance Variable to value of parameter region
+
+        UserSetup();
     }
+
+
+    private void UserSetup(){
+        UserClient = new RestClient()
+        {
+            CookieContainer = UserCookieJar
+        };
+        Authentication = new Authentication(this);
+    }
+
+
+    #region Public Methods
+
+    void ChangeCredentials(RiotLoginData pLoginData){
+        this.loginData = pLoginData;
+    }
+
+    #endregion
 }
 
 internal enum AuthType
