@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "41odQ8zzlcCArvobj1OMYhMAVzeRT6RKFVccBFcblJCJdGWhKkce65cJzzlvD+MwklAaZrGT+Ilz6zcJHAGEsQ==",
+  "dgSpecHash": "5tpiS3GPo7Dw+CyeWN3a/vMcX7J4a/dydrH03dBaVCWoA/UGNH16UXTAJlmhqTBF8zA4UxGrjlunYawIH6eFRA==",
   "success": true,
-  "projectFilePath": "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
+  "projectFilePath": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Mike\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
-    "C:\\Users\\Mike\\.nuget\\packages\\restsharp\\106.13.0\\restsharp.106.13.0.nupkg.sha512"
+    "C:\\Users\\Michael\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
+    "C:\\Users\\Michael\\.nuget\\packages\\restsharp\\106.13.0\\restsharp.106.13.0.nupkg.sha512"
   ],
   "logs": []
 }

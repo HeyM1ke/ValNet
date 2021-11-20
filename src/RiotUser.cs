@@ -12,8 +12,9 @@ namespace ValNet;
 public class RiotUser
 {
     internal RiotLoginData loginData;
-    private RiotRegion UserRegion;
+    internal RiotRegion UserRegion;
     internal RiotUrl _riotUrl = new RiotUrl();
+
     /// <summary>
     /// Signifies Authentication Method used.
     /// </summary>
@@ -34,7 +35,13 @@ public class RiotUser
     /// </summary>
     /// 
     public Authentication Authentication;
-    
+
+    /// <summary>
+    /// Class that can be used to make request
+    /// </summary>
+    /// 
+    public RequestBase Requests;
+
     public RiotUser()
     {
         UserSetup();
@@ -60,11 +67,18 @@ public class RiotUser
         {
             CookieContainer = UserCookieJar
         };
-        Authentication = new Authentication(this);
-    }
 
+        Authentication = new Authentication(this);
+        RequestBase = new RequestBase(this);
+    }
+   
 
     #region Public Methods
+
+    void CustomUserRequest(string requestUrl, Method method, string parameters)
+    {
+
+    }
 
     void ChangeCredentials(RiotLoginData pLoginData){
         this.loginData = pLoginData;

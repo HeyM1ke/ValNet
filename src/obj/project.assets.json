@@ -74,24 +74,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Mike\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\Michael\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
+      "projectUniqueName": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj",
       "projectName": "ValNet",
-      "projectPath": "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
-      "packagesPath": "C:\\Users\\Mike\\.nuget\\packages\\",
-      "outputPath": "F:\\Valorant Projects\\ValNet\\src\\obj\\",
+      "projectPath": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj",
+      "packagesPath": "C:\\Users\\Michael\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\Mike\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Users\\Michael\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
