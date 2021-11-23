@@ -14,7 +14,9 @@ public class RiotUser
     internal RiotLoginData loginData;
     internal RiotRegion UserRegion;
     internal RiotUrl _riotUrl = new RiotUrl();
-
+    internal RiotTokens tokenData = new RiotTokens();
+    public RiotUserData? UserData;
+    
     /// <summary>
     /// Signifies Authentication Method used.
     /// </summary>
@@ -42,6 +44,7 @@ public class RiotUser
     /// 
     public RequestBase Requests;
 
+    
     public RiotUser()
     {
         UserSetup();
@@ -63,13 +66,14 @@ public class RiotUser
 
 
     private void UserSetup(){
+        UserCookieJar = new CookieContainer();
         UserClient = new RestClient()
         {
             CookieContainer = UserCookieJar
         };
 
         Authentication = new Authentication(this);
-        RequestBase = new RequestBase(this);
+        Requests = new RequestBase(this);
     }
    
 
@@ -96,4 +100,10 @@ internal struct RiotUrl
 {
     public string glzURL;
     public string pdURL;
+}
+
+internal struct RiotTokens
+{
+    public string access;
+    public string? entitle;
 }
