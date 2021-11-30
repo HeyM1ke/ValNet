@@ -12,15 +12,15 @@ namespace ValNet;
 public class RiotUser
 {
     internal RiotLoginData loginData;
-    internal RiotRegion UserRegion;
-    internal RiotUrl _riotUrl = new RiotUrl();
-    internal RiotTokens tokenData = new RiotTokens();
+    public RiotRegion UserRegion;
+    public RiotUrl _riotUrl = new RiotUrl();
+    public RiotTokens tokenData = new RiotTokens();
     public RiotUserData? UserData;
     
     /// <summary>
     /// Signifies Authentication Method used.
     /// </summary>
-    internal AuthType AuthType;
+    public AuthType AuthType;
     
     /// <summary>
     /// User HTTPClient used for requests
@@ -91,18 +91,18 @@ public class RiotUser
     #endregion
 }
 
-internal enum AuthType
+public enum AuthType
 {
     Cloud,Socket,Cookie
 }
 
-internal struct RiotUrl
+public struct RiotUrl
 {
     public string glzURL;
     public string pdURL;
 }
 
-internal struct RiotTokens
+public struct RiotTokens
 {
     public string access;
     public string? entitle;
