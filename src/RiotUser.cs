@@ -3,6 +3,7 @@ using ValNet.Interfaces;
 using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using ValNet.Requests;
+using System.Net;
 
 namespace ValNet;
 
@@ -44,7 +45,10 @@ public class RiotUser
     /// 
     public RequestBase Requests;
 
-    
+    /// <summary>
+    /// Class used to interact with Player's Store
+    /// </summary>
+    public Store Store;
     public RiotUser()
     {
         UserSetup();
@@ -72,19 +76,20 @@ public class RiotUser
             CookieContainer = UserCookieJar
         };
 
-        Authentication = new Authentication(this);
-        Requests = new RequestBase(this);
+        Authentication = new (this);
+        Requests = new (this);
+        Store = new(this);
     }
    
 
     #region Public Methods
 
-    void CustomUserRequest(string requestUrl, Method method, string parameters)
+    public void CustomUserRequest(string requestUrl, Method method, string parameters)
     {
 
     }
 
-    void ChangeCredentials(RiotLoginData pLoginData){
+    public void ChangeCredentials(RiotLoginData pLoginData){
         this.loginData = pLoginData;
     }
 
@@ -106,4 +111,5 @@ public struct RiotTokens
 {
     public string access;
     public string? entitle;
+    public string idToken;
 }

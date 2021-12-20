@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -9,10 +10,10 @@ namespace ValNet.Requests;
 
 public class Authentication : RequestBase 
 {
-
     private const string authUrl = "https://auth.riotgames.com/api/v1/authorization";
     private const string entitleUrl = "https://entitlements.auth.riotgames.com/api/token/v1";
     private const string userInfoUrl = "https://auth.riotgames.com/userinfo";
+    private const string regionUrl = "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant";
     private const string cookieJson = "{\"client_id\":\"play-valorant-web-prod\",\"nonce\":\"1\",\"redirect_uri\":\"https://playvalorant.com/opt_in" + "\",\"response_type\":\"token id_token\",\"scope\":\"account openid\"}";
     public Authentication(RiotUser pUser) : base(pUser)
     {
@@ -47,7 +48,7 @@ public class Authentication : RequestBase
             throw new Exception("Failed Login, please check credentials and try again.");
 
         JToken authObj = JObject.FromObject(JsonConvert.DeserializeObject(resp.Content));
-
+        
         string authURL = authObj["response"]["parameters"]["uri"].Value<string>();
 
         
@@ -58,7 +59,7 @@ public class Authentication : RequestBase
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
         
         _user.UserData = GetUserData();
-
+        _user.UserRegion = GetUserRegion();
         _user.AuthType = AuthType.Cloud;
     }
     
@@ -88,13 +89,16 @@ public class Authentication : RequestBase
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
         
         _user.UserData = GetUserData();
-        
+
+        _user.UserRegion = GetUserRegion();
         _user.AuthType = AuthType.Cookie;
     }
 
+    
     void ParseWebToken(string tokenURL)
     {
        _user.tokenData.access = Regex.Match(tokenURL, @"access_token=(.+?)&scope=").Groups[1].Value;
+       _user.tokenData.idToken = Regex.Match(tokenURL, @"id_token=(.+?)&token_type=").Groups[1].Value;
     }
     
     private string? GetEntitlementToken()
@@ -122,5 +126,54 @@ public class Authentication : RequestBase
         
         return JsonConvert.DeserializeObject<RiotUserData>(resp.Content);
 
+    }
+
+    private RiotRegion GetUserRegion()
+    {
+
+        IRestRequest request = new RestRequest(regionUrl, Method.PUT);
+        var idTokData = new
+        {
+            id_token = _user.tokenData.idToken
+        };
+        request.AddJsonBody(JsonSerializer.Serialize(idTokData));
+        var resp = _user.UserClient.Execute(request);
+        if (!resp.IsSuccessful)
+            throw new Exception("Failed to get user region.");
+
+        JToken authObj = JObject.FromObject(JsonConvert.DeserializeObject(resp.Content));
+
+        string liveRegion = authObj["affinities"]["live"].Value<string>();
+        
+        switch (liveRegion)
+        {
+            case"na":
+                _user._riotUrl.glzURL = "https://glz-na-1.na.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
+                return RiotRegion.NA;
+            case "eu":
+                _user._riotUrl.glzURL = "https://glz-eu-1.eu.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.eu.a.pvp.net";
+                return RiotRegion.EU;
+            case"kr":
+                _user._riotUrl.glzURL = "https://glz-kr-1.kr.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.kr.a.pvp.net";
+                return RiotRegion.KR;
+            case "latam":
+                _user._riotUrl.glzURL = "https://glz-latam-1.na.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
+                return RiotRegion.LATAM;
+            case"br":
+                _user._riotUrl.glzURL = "https://glz-br-1.na.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
+                return RiotRegion.BR;
+            case "ap":
+                _user._riotUrl.glzURL = "https://glz-ap-1.ap.a.pvp.net";
+                _user._riotUrl.pdURL = "https://pd.ap.a.pvp.net";
+                return RiotRegion.AP;
+            default:
+                return RiotRegion.NA;
+
+        }
     }
 }

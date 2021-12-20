@@ -6,11 +6,11 @@ public class RiotUserData
     public string sub { get; set; }
     public bool email_verified { get; set; }
     public string player_plocale { get; set; }
-    public long country_at { get; set; }
+    public long? country_at { get; set; }
     public PwInfo pw { get; set; }
     public bool phone_number_verified { get; set; }
     public bool account_verified { get; set; }
-    public object ppid { get; set; }
+    public object? ppid { get; set; }
     public string player_locale { get; set; }
     public AccountInfo acct { get; set; }
     public int age { get; set; }

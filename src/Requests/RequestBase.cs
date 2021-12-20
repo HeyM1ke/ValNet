@@ -11,12 +11,11 @@ public class RequestBase
     {
         _user = pUser;
     }
-    async Task<DefaultApiResponse> RiotPdRequest(string endpoint, Method method, string extraParams = null)
+
+    internal async Task<DefaultApiResponse> RiotPdRequest(string endpoint, Method method, string extraParams = null)
     {
         IRestRequest pdRequest = new RestRequest($"{_user._riotUrl.pdURL}{endpoint}{extraParams}", method);
         var resp = _user.UserClient.Execute(pdRequest);
-
-
 
         DefaultApiResponse response = new()
         {
