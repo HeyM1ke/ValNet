@@ -4,13 +4,14 @@ using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using ValNet.Requests;
 using System.Net;
+using System.Text.Json;
 
 namespace ValNet;
 
 /// <summary>
 /// Default Account Object.
 /// </summary>
-public class RiotUser
+public class RiotUser   
 {
     internal RiotLoginData loginData;
     public RiotRegion UserRegion;
@@ -24,9 +25,14 @@ public class RiotUser
     public AuthType AuthType;
     
     /// <summary>
-    /// User HTTPClient used for requests
+    /// User HTTPClient used for Web requests
     /// </summary>
     internal RestClient UserClient { get; set; }
+    
+    /// <summary>
+    /// User HTTPClient used for WebSocket requests
+    /// </summary>
+    internal RestClient SocketClient { get; set; }
     
     /// <summary>
     /// CookieContainer used to hold User's Cookies
@@ -49,6 +55,27 @@ public class RiotUser
     /// Class used to interact with Player's Store
     /// </summary>
     public Store Store;
+
+    /// <summary>
+    /// Class used to interact with Player's Inventory
+    /// </summary>
+    public Inventory Inventory;
+
+    /// <summary>
+    /// Class used to intereact with the Player's Party (Needs to be in-game) to use.
+    /// </summary>
+    public Party Party;
+
+    /// <summary>
+    /// Returns true if player is in game.
+    /// </summary>
+    public bool IsPlayerInGame {
+        get
+        {
+            return CheckPlayerInGame().Result;
+        }
+    }
+    
     public RiotUser()
     {
         UserSetup();
@@ -71,19 +98,27 @@ public class RiotUser
 
     private void UserSetup(){
         UserCookieJar = new CookieContainer();
-        UserClient = new RestClient()
+        UserClient = new RestClient
         {
             CookieContainer = UserCookieJar
         };
 
+        SocketClient = new RestClient
+        {
+            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+        };
+
+        
         Authentication = new (this);
         Requests = new (this);
         Store = new(this);
+        Inventory = new(this);
+        Party = new(this);
     }
    
 
     #region Public Methods
-
+    
     public void CustomUserRequest(string requestUrl, Method method, string parameters)
     {
 
@@ -91,6 +126,34 @@ public class RiotUser
 
     public void ChangeCredentials(RiotLoginData pLoginData){
         this.loginData = pLoginData;
+    }
+    
+    public void SetupParty()
+    {
+        if (!IsPlayerInGame)
+            throw new Exception("User is not in game, please try when the user is in game.");
+        
+        this.Party.InitialPartySetup();
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    internal async Task<bool> CheckPlayerInGame()
+    {
+        var requestResp = await this.Requests.RiotGlzRequest($"/session/v1/sessions/{this.UserData.sub}", Method.GET);
+
+        if (!requestResp.isSucc)
+            return false;
+
+        var obj = JsonSerializer.Deserialize<RiotSessionObj>(requestResp.content.ToString());
+
+        if (obj.cxnState.Equals("CONNECTED"))
+            return true;
+
+        
+        return false;
     }
 
     #endregion
@@ -109,7 +172,7 @@ public struct RiotUrl
 
 public struct RiotTokens
 {
-    public string access;
+    public string? access;
     public string? entitle;
-    public string idToken;
+    public string? idToken;
 }

@@ -51,6 +51,10 @@
             "RestSharp": {
               "target": "Package",
               "version": "[106.13.0, )"
+            },
+            "websocketsharp.core": {
+              "target": "Package",
+              "version": "[1.0.0, )"
             }
           },
           "imports": [

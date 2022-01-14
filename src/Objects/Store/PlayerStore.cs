@@ -32,7 +32,7 @@ public class BundleItem
     public ItemOffer ItemData { get; set; }
     public int BasePrice { get; set; }
     public string CurrencyID { get; set; }
-    public int DiscountPercent { get; set; }
+    public double DiscountPercent { get; set; }
     public int DiscountedPrice { get; set; }
     public bool IsPromoItem { get; set; }
 }
