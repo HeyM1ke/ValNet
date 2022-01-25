@@ -1,11 +1,11 @@
 # ValNet
-A C# Based Valorant library that allows you to interact with data from Valorant.
+A C# Based Valorant library that allows you to interact with data from VALORANT.
 
 # NOTICE
 This library is not complete and still has a ways to go and can be improved in many aspects. Please contribute if you would like.
 
-# Dependecys
-> This project is built apon excisting nuget packages. Valnet will become a nuget package when it is complete.
+# Dependencies
+> This project is built on top of excisting nuget packages. Valnet will become a nuget package when it is complete.
 
 - Restsharp (106.15.0)
 - Newtonsoft.Json
