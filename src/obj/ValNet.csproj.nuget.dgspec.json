@@ -1,24 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {}
+    "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {}
   },
   "projects": {
-    "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {
+    "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
+        "projectUniqueName": "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
         "projectName": "ValNet",
-        "projectPath": "F:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
+        "projectPath": "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
         "packagesPath": "C:\\Users\\Mike\\.nuget\\packages\\",
-        "outputPath": "F:\\Valorant Projects\\ValNet\\src\\obj\\",
+        "outputPath": "E:\\Valorant Projects\\ValNet\\src\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
           "C:\\Users\\Mike\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -72,7 +68,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.101\\RuntimeIdentifierGraph.json"
         }
       }
     }

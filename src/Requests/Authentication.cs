@@ -1,42 +1,45 @@
-﻿using System.Diagnostics;
-using System.Security.Authentication;
+﻿using System.Security.Authentication;
 using System.Text.RegularExpressions;
-
 using RestSharp;
 using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WebSocketSharp;
-using JsonConverter = System.Text.Json.Serialization.JsonConverter;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ValNet.Requests;
 
-public class Authentication : RequestBase 
+public class Authentication : RequestBase
 {
     #region Riot Authentication Urls
+
     private const string authUrl = "https://auth.riotgames.com/api/v1/authorization";
     private const string entitleUrl = "https://entitlements.auth.riotgames.com/api/token/v1";
     private const string userInfoUrl = "https://auth.riotgames.com/userinfo";
     private const string regionUrl = "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant";
-    private const string cookieJson = "{\"client_id\":\"play-valorant-web-prod\",\"nonce\":\"1\",\"redirect_uri\":\"https://playvalorant.com/opt_in" + "\",\"response_type\":\"token id_token\",\"scope\":\"account openid\"}";
+
+    private const string cookieJson =
+        "{\"client_id\":\"play-valorant-web-prod\",\"nonce\":\"1\",\"redirect_uri\":\"https://playvalorant.com/opt_in" +
+        "\",\"response_type\":\"token id_token\",\"scope\":\"account openid\"}";
+
     #endregion
-    
+
     #region Authentication Objects
 
     internal Lockfile userLockfile;
     public WebSocket userWebsocket;
+
     #endregion
-    
+
     public Authentication(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
 
     #region Authentication Methods
-    
-    public void AuthenticateWithCloud()
+
+    public AuthenticationStatus AuthenticateWithCloud()
     {
         if (_user.loginData.username == null || _user.loginData.password == null)
             throw new Exception("Username or password are empty, please retry when there are values in place.");
@@ -63,54 +66,122 @@ public class Authentication : RequestBase
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
 
-        AuthorizationJson? authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
 
-        if (authObj.error is not null)
+        if (authObj.error is not null) throw new Exception("Error: Username/Password is incorrect");
+
+        // Two Factor Authentication Block
+
+        //Determine if Two Factor is needed
+        if (authObj.type.Equals("multifactor"))
+            return new AuthenticationStatus()
+            {
+                bIsAuthComplete = false,
+                type = "multifactor",
+                multifactorData = authObj.multifactor
+            };
+        else
+            return CompleteAuth(authObj);
+
+
+        // End
+    }
+
+    public AuthenticationStatus AuthenticateTwoFactorCode(string code)
+    {
+        IRestRequest multifactorRequest = new RestRequest(authUrl, Method.PUT);
+        var data = new
         {
-            throw new Exception("Username/Password is not correct, please check again.");
-        }
-        
-        if (authObj is null || authObj.response is null)
-            throw new Exception("Could not properly authenticate.");
+            type = "multifactor",
+            code = code,
+            rememberDevice = true
+        };
 
+        multifactorRequest.AddJsonBody(JsonSerializer.Serialize(data));
+        var resp = _user.UserClient.Execute(multifactorRequest);
 
+        if (!resp.IsSuccessful)
+            throw new Exception("An Error has Occurred");
+
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
+
+        if (authObj.error is not null && authObj.error.Equals("multifactor_attempt_failed"))
+            return new AuthenticationStatus()
+            {
+                bIsAuthComplete = false,
+                type = authObj.type,
+                multifactorData = authObj.multifactor,
+                error = authObj.error
+            };
+
+        if (authObj.type.Equals("response")) return CompleteAuth(authObj);
+
+        throw new Exception("Unknown Error has occured.");
+    }
+
+    private AuthenticationStatus CompleteAuth(AuthorizationJson authObj)
+    {
         ParseWebToken(authObj.response.parameters.uri);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
 
         _user.tokenData.entitle = GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
-        
+
+        _user.UserData = GetUserData();
+        _user.UserRegion = GetUserRegion();
+        GetCurrentGameVersion();
+        _user.AuthType = AuthType.Cloud;
+
+        return new AuthenticationStatus()
+        {
+            bIsAuthComplete = true
+        };
+    }
+
+    public void AuthenticateWithToken(string redirectUrl)
+    {
+        // get initial cookies for auth
+        IRestRequest initCookies = new RestRequest(authUrl, Method.POST);
+        initCookies.AddJsonBody(cookieJson);
+        _user.UserClient.Execute(initCookies);
+
+        ParseWebToken(redirectUrl);
+        _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
+
+        _user.tokenData.entitle = GetEntitlementToken();
+        _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
+
         _user.UserData = GetUserData();
         _user.UserRegion = GetUserRegion();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Cloud;
     }
-    
+
     public void AuthenticateWithSocket()
     {
         //Check for Lockfile
         if (ParseLockFile() == false)
             throw new Exception("Game is not Open.");
-        
+
         //Lockfile needs to excist for the remaining methods need to run.
         ConnectToWebsocket(); // Connects to the websocket
 
-        IRestRequest sockToken = new RestRequest($"https://127.0.0.1:{userLockfile.port}/entitlements/v1/token", Method.GET);
-        
-        sockToken.AddHeader("Authorization", $"Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"riot:{_user.Authentication.userLockfile.password}"))}");
-        
+        IRestRequest sockToken =
+            new RestRequest($"https://127.0.0.1:{userLockfile.port}/entitlements/v1/token", Method.GET);
+
+        sockToken.AddHeader("Authorization",
+            $"Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"riot:{_user.Authentication.userLockfile.password}"))}");
+
         //Move this!
-        sockToken.AddHeader("X-Riot-ClientPlatform", "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9");
-        
+        sockToken.AddHeader("X-Riot-ClientPlatform",
+            "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9");
+
         // Change This!
-        sockToken.AddHeader("X-Riot-ClientVersion", "release-04.00-shipping-20-655657"); 
-        
-        var resp = new RestClient()
-        {
-            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-        }.Execute(sockToken);
-        
-        if(!resp.IsSuccessful)
+        sockToken.AddHeader("X-Riot-ClientVersion", "release-04.00-shipping-20-655657");
+
+        var resp = _user.SocketClient.Execute(sockToken);
+
+        if (!resp.IsSuccessful)
             throw new Exception("Error reaching game.");
         var tokens = JsonSerializer.Deserialize<WebsocketTokens>(resp.Content);
 
@@ -125,17 +196,17 @@ public class Authentication : RequestBase
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Socket;
     }
-    
+
     public void AuthenticateWithCookies()
     {
         IRestRequest initCookies = new RestRequest(authUrl, Method.POST);
         initCookies.AddJsonBody(cookieJson);
         var resp = _user.UserClient.Execute(initCookies);
-        
+
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
 
-        AuthorizationJson? authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
 
         if (authObj is null || authObj.response is null)
             throw new Exception("Could not properly authenticate.");
@@ -146,7 +217,7 @@ public class Authentication : RequestBase
 
         _user.tokenData.entitle = GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
-        
+
         _user.UserData = GetUserData();
 
         _user.UserRegion = GetUserRegion();
@@ -158,26 +229,27 @@ public class Authentication : RequestBase
 
     #region Cloud/Cookie Methods
 
-    void ParseWebToken(string tokenURL)
+    private void ParseWebToken(string tokenURL)
     {
-       _user.tokenData.access = Regex.Match(tokenURL, @"access_token=(.+?)&scope=").Groups[1].Value;
-       _user.tokenData.idToken = Regex.Match(tokenURL, @"id_token=(.+?)&token_type=").Groups[1].Value;
+        _user.tokenData.access = Regex.Match(tokenURL, @"access_token=(.+?)&scope=").Groups[1].Value;
+        _user.tokenData.idToken = Regex.Match(tokenURL, @"id_token=(.+?)&token_type=").Groups[1].Value;
     }
-    
+
     private string? GetEntitlementToken()
     {
-        RestRequest request = new RestRequest(entitleUrl, Method.POST);
-        
+        var request = new RestRequest(entitleUrl, Method.POST);
+
         request.AddJsonBody("{}");
 
         var resp = _user.UserClient.Execute(request);
 
         if (!resp.IsSuccessful)
             throw new Exception("Failed to get entitlement token.");
-        
+
         var entitlement_token = JObject.FromObject(JsonConvert.DeserializeObject(resp.Content));
 
-        return (entitlement_token["entitlements_token"] ?? throw new InvalidOperationException("Entitlement Token not Found in Request.")).Value<string>();
+        return (entitlement_token["entitlements_token"] ??
+                throw new InvalidOperationException("Entitlement Token not Found in Request.")).Value<string>();
     }
 
     private RiotUserData? GetUserData()
@@ -186,14 +258,13 @@ public class Authentication : RequestBase
         var resp = _user.UserClient.Execute(userDataReq);
         if (!resp.IsSuccessful)
             throw new Exception("Failed to get UserData");
-        
-        return JsonConvert.DeserializeObject<RiotUserData>(resp.Content);
 
+        return JsonConvert.DeserializeObject<RiotUserData>(resp.Content);
     }
 
     private RiotRegion GetUserRegion(string region = null)
     {
-        string liveRegion = "";
+        var liveRegion = "";
         if (region is null)
         {
             IRestRequest request = new RestRequest(regionUrl, Method.PUT);
@@ -211,11 +282,13 @@ public class Authentication : RequestBase
             liveRegion = authObj["affinities"]["live"].Value<string>();
         }
         else
+        {
             liveRegion = region;
+        }
 
         switch (liveRegion)
         {
-            case"na":
+            case "na":
                 _user._riotUrl.glzURL = "https://glz-na-1.na.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
                 return RiotRegion.NA;
@@ -223,7 +296,7 @@ public class Authentication : RequestBase
                 _user._riotUrl.glzURL = "https://glz-eu-1.eu.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.eu.a.pvp.net";
                 return RiotRegion.EU;
-            case"kr":
+            case "kr":
                 _user._riotUrl.glzURL = "https://glz-kr-1.kr.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.kr.a.pvp.net";
                 return RiotRegion.KR;
@@ -231,7 +304,7 @@ public class Authentication : RequestBase
                 _user._riotUrl.glzURL = "https://glz-latam-1.na.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
                 return RiotRegion.LATAM;
-            case"br":
+            case "br":
                 _user._riotUrl.glzURL = "https://glz-br-1.na.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.na.a.pvp.net";
                 return RiotRegion.BR;
@@ -241,24 +314,24 @@ public class Authentication : RequestBase
                 return RiotRegion.AP;
             default:
                 return RiotRegion.NA;
-
         }
     }
+
     #endregion
-    
+
     #region Websocket Methods
-    bool ParseLockFile()
+
+    private bool ParseLockFile()
     {
         var lockfileLocation =
             $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Riot Games\Riot Client\Config\lockfile";
 
         if (File.Exists(lockfileLocation))
-        {
-            using (FileStream fileStream = new FileStream(lockfileLocation, FileMode.Open, FileAccess.ReadWrite,
+            using (var fileStream = new FileStream(lockfileLocation, FileMode.Open, FileAccess.ReadWrite,
                        FileShare.ReadWrite))
-            using (StreamReader sr = new StreamReader(fileStream))
+            using (var sr = new StreamReader(fileStream))
             {
-                string[] parts = sr.ReadToEnd().Split(":");
+                var parts = sr.ReadToEnd().Split(":");
 
                 userLockfile.processName = parts[0];
                 userLockfile.processId = parts[1];
@@ -268,12 +341,12 @@ public class Authentication : RequestBase
 
                 return true;
             }
-        }
+
         // Lock File was not found, wait for the file to show up using a watcher.
         return false;
     }
 
-    void ConnectToWebsocket()
+    private void ConnectToWebsocket()
     {
         userWebsocket = new WebSocket($"wss://127.0.0.1:{userLockfile.port}/", "wamp");
         userWebsocket.SetCredentials("riot", userLockfile.password, true);
@@ -283,24 +356,25 @@ public class Authentication : RequestBase
         userWebsocket.Send("[5, \"OnJsonApiEvent\"]");
     }
 
-    async void WebsocketDetermineRegion()
+    private async void WebsocketDetermineRegion()
     {
         var valorantData = new
         {
             product = "valorant"
         };
-        var data = await _user.Requests.WebsocketRequest("/player-affinity/product/v1/token", Method.POST, "", valorantData);
-        
-        var Affinities = JsonSerializer.Deserialize<WebsocketAffinities>((string)data.content);
+        var data = await _user.Requests.WebsocketRequest("/player-affinity/product/v1/token", Method.POST, "",
+            valorantData);
+
+        var Affinities = JsonSerializer.Deserialize<WebsocketAffinities>((string) data.content);
 
         _user.UserRegion = GetUserRegion(Affinities.affinities.live);
-
     }
+
     #endregion
 
     #region General Methods
 
-    void GetCurrentGameVersion()
+    private void GetCurrentGameVersion()
     {
         // Method adds client ver header to both clients
 

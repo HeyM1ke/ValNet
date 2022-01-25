@@ -6,18 +6,16 @@ namespace ValNet.Requests;
 
 public class Inventory : RequestBase
 {
-    public PlayerInventory CurrentInventory
-    {
-        get;
-        set;
-    }
+    public PlayerInventory CurrentInventory { get; set; }
+
     public Inventory(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
+
     public async Task<PlayerInventory> GetPlayerInventory()
     {
-        var resp =  await RiotPdRequest($"/personalization/v2/players/{_user.UserData.sub}/playerloadout", Method.GET);
+        var resp = await RiotPdRequest($"/personalization/v2/players/{_user.UserData.sub}/playerloadout", Method.GET);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Player Store");
@@ -26,6 +24,7 @@ public class Inventory : RequestBase
 
         return CurrentInventory;
     }
+
     public async Task<bool> SetPlayerInventory(PlayerInventory inventory)
     {
         var jsonData = JsonSerializer.Serialize(inventory);
@@ -33,10 +32,7 @@ public class Inventory : RequestBase
         var resp = await RiotPdRequest($"/personalization/v2/players/{_user.UserData.sub}/playerloadout", Method.PUT,
             null, jsonData);
 
-        if (!resp.isSucc)
-        {
-            return false;
-        }
+        if (!resp.isSucc) return false;
 
         CurrentInventory = JsonSerializer.Deserialize<PlayerInventory>(resp.content.ToString());
         return true;

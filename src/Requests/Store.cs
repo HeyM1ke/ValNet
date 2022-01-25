@@ -15,7 +15,7 @@ public class Store : RequestBase
 
     public async Task<PlayerStore> GetPlayerStore()
     {
-        var resp =  await RiotPdRequest($"/store/v2/storefront/{_user.UserData.sub}", Method.GET);
+        var resp = await RiotPdRequest($"/store/v2/storefront/{_user.UserData.sub}", Method.GET);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Player Store");
@@ -27,7 +27,7 @@ public class Store : RequestBase
 
     public async Task<object> GetStoreOffers()
     {
-        var resp =  await RiotPdRequest("/store/v1/offers/", Method.GET);
+        var resp = await RiotPdRequest("/store/v1/offers/", Method.GET);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Store Offers");

@@ -1,5 +1,4 @@
 ﻿using RestSharp;
-using ValNet.Interfaces;
 using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using ValNet.Requests;
@@ -32,7 +31,7 @@ public class RiotUser
     /// <summary>
     /// User HTTPClient used for WebSocket requests
     /// </summary>
-    internal RestClient SocketClient { get; set; }
+    public RestClient SocketClient { get; set; }
     
     /// <summary>
     /// CookieContainer used to hold User's Cookies
@@ -65,6 +64,11 @@ public class RiotUser
     /// Class used to intereact with the Player's Party (Needs to be in-game) to use.
     /// </summary>
     public Party Party;
+    
+    /// <summary>
+    /// Class used to intereact with the Player's Contact Progess.
+    /// </summary>
+    public Contracts Contracts;
 
     /// <summary>
     /// Returns true if player is in game.
@@ -114,16 +118,12 @@ public class RiotUser
         Store = new(this);
         Inventory = new(this);
         Party = new(this);
+        Contracts = new(this);
     }
    
 
     #region Public Methods
     
-    public void CustomUserRequest(string requestUrl, Method method, string parameters)
-    {
-
-    }
-
     public void ChangeCredentials(RiotLoginData pLoginData){
         this.loginData = pLoginData;
     }
