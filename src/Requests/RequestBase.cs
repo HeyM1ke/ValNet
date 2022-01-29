@@ -15,7 +15,7 @@ public class RequestBase
     internal async Task<DefaultApiResponse> RiotPdRequest(string endpoint, Method method, string extraParams = null,
         object body = null)
     {
-        IRestRequest pdRequest = new RestRequest($"{_user._riotUrl.pdURL}{endpoint}{extraParams}", method);
+        RestRequest pdRequest = new RestRequest($"{_user._riotUrl.pdURL}{endpoint}{extraParams}", method);
         var resp = _user.UserClient.ExecuteAsync(pdRequest).Result;
 
         DefaultApiResponse response = new()
@@ -31,7 +31,7 @@ public class RequestBase
     internal async Task<DefaultApiResponse> RiotGlzRequest(string endpoint, Method method, string extraParams = null,
         object body = null)
     {
-        IRestRequest glzRequest = new RestRequest($"{_user._riotUrl.glzURL}{endpoint}{extraParams}", method);
+        RestRequest glzRequest = new RestRequest($"{_user._riotUrl.glzURL}{endpoint}{extraParams}", method);
         var resp = _user.UserClient.ExecuteAsync(glzRequest).Result;
 
 
@@ -48,7 +48,7 @@ public class RequestBase
     internal async Task<DefaultApiResponse> CustomRequest(string url, Method method, string extraParams = null,
         object body = null)
     {
-        IRestRequest customReq = new RestRequest($"{url}{extraParams}", method);
+        RestRequest customReq = new RestRequest($"{url}{extraParams}", method);
         var resp = _user.UserClient.ExecuteAsync(customReq).Result;
 
         DefaultApiResponse response = new()
@@ -65,7 +65,7 @@ public class RequestBase
     public async Task<DefaultApiResponse> WebsocketRequest(string endpoint, Method method, string extraParams = null,
         object body = null)
     {
-        IRestRequest socketReq =
+        RestRequest socketReq =
             new RestRequest($"https://127.0.0.1:{_user.Authentication.userLockfile.port}{endpoint}{extraParams}",
                 method);
         socketReq.AddHeader("Authorization",
