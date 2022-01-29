@@ -3,10 +3,9 @@ using System.Text.RegularExpressions;
 using RestSharp;
 using ValNet.Objects;
 using ValNet.Objects.Authentication;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using WebSocketSharp;
-using JsonSerializer = System.Text.Json.JsonSerializer;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ValNet.Requests;
 
@@ -39,15 +38,15 @@ public class Authentication : RequestBase
 
     #region Authentication Methods
 
-    public AuthenticationStatus AuthenticateWithCloud()
+    public async Task<AuthenticationStatus> AuthenticateWithCloud()
     {
         if (_user.loginData.username == null || _user.loginData.password == null)
             throw new Exception("Username or password are empty, please retry when there are values in place.");
 
         // get initial cookies for auth
-        IRestRequest initCookies = new RestRequest(authUrl, Method.POST);
+        RestRequest initCookies = new RestRequest(authUrl, Method.Post);
         initCookies.AddJsonBody(cookieJson);
-        _user.UserClient.Execute(initCookies);
+        _user.UserClient.ExecuteAsync(initCookies);
 
         // Auth with user details
 
@@ -59,9 +58,9 @@ public class Authentication : RequestBase
             remember = "true"
         };
 
-        IRestRequest loginRequest = new RestRequest(authUrl, Method.PUT);
+        RestRequest loginRequest = new RestRequest(authUrl, Method.Put);
         loginRequest.AddJsonBody(JsonSerializer.Serialize(authData));
-        var resp = _user.UserClient.Execute(loginRequest);
+        var resp = await _user.UserClient.ExecuteAsync(loginRequest);
 
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
@@ -80,16 +79,17 @@ public class Authentication : RequestBase
                 type = "multifactor",
                 multifactorData = authObj.multifactor
             };
-        else
-            return CompleteAuth(authObj);
+        
+        
+        return await CompleteAuth(authObj);
 
 
         // End
     }
 
-    public AuthenticationStatus AuthenticateTwoFactorCode(string code)
+    public async Task<AuthenticationStatus> AuthenticateTwoFactorCode(string code)
     {
-        IRestRequest multifactorRequest = new RestRequest(authUrl, Method.PUT);
+        RestRequest multifactorRequest = new RestRequest(authUrl, Method.Put);
         var data = new
         {
             type = "multifactor",
@@ -98,7 +98,7 @@ public class Authentication : RequestBase
         };
 
         multifactorRequest.AddJsonBody(JsonSerializer.Serialize(data));
-        var resp = _user.UserClient.Execute(multifactorRequest);
+        var resp = await _user.UserClient.ExecuteAsync(multifactorRequest);
 
         if (!resp.IsSuccessful)
             throw new Exception("An Error has Occurred");
@@ -114,21 +114,21 @@ public class Authentication : RequestBase
                 error = authObj.error
             };
 
-        if (authObj.type.Equals("response")) return CompleteAuth(authObj);
+        if (authObj.type.Equals("response")) return await CompleteAuth(authObj);
 
         throw new Exception("Unknown Error has occured.");
     }
 
-    private AuthenticationStatus CompleteAuth(AuthorizationJson authObj)
+    private async Task<AuthenticationStatus> CompleteAuth(AuthorizationJson authObj)
     {
         ParseWebToken(authObj.response.parameters.uri);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
 
-        _user.tokenData.entitle = GetEntitlementToken();
+        _user.tokenData.entitle = await GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
 
-        _user.UserData = GetUserData();
-        _user.UserRegion = GetUserRegion();
+        _user.UserData = await GetUserData();
+        _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Cloud;
 
@@ -138,26 +138,26 @@ public class Authentication : RequestBase
         };
     }
 
-    public void AuthenticateWithToken(string redirectUrl)
+    public async void AuthenticateWithToken(string redirectUrl)
     {
         // get initial cookies for auth
-        IRestRequest initCookies = new RestRequest(authUrl, Method.POST);
+        RestRequest initCookies = new RestRequest(authUrl, Method.Post);
         initCookies.AddJsonBody(cookieJson);
-        _user.UserClient.Execute(initCookies);
+        await _user.UserClient.ExecuteAsync(initCookies);
 
         ParseWebToken(redirectUrl);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
 
-        _user.tokenData.entitle = GetEntitlementToken();
+        _user.tokenData.entitle = await GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
 
-        _user.UserData = GetUserData();
-        _user.UserRegion = GetUserRegion();
+        _user.UserData = await GetUserData();
+        _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Cloud;
     }
 
-    public void AuthenticateWithSocket()
+    public async void AuthenticateWithSocket()
     {
         //Check for Lockfile
         if (ParseLockFile() == false)
@@ -166,8 +166,8 @@ public class Authentication : RequestBase
         //Lockfile needs to excist for the remaining methods need to run.
         ConnectToWebsocket(); // Connects to the websocket
 
-        IRestRequest sockToken =
-            new RestRequest($"https://127.0.0.1:{userLockfile.port}/entitlements/v1/token", Method.GET);
+        RestRequest sockToken =
+            new RestRequest($"https://127.0.0.1:{userLockfile.port}/entitlements/v1/token", Method.Get);
 
         sockToken.AddHeader("Authorization",
             $"Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"riot:{_user.Authentication.userLockfile.password}"))}");
@@ -179,7 +179,7 @@ public class Authentication : RequestBase
         // Change This!
         sockToken.AddHeader("X-Riot-ClientVersion", "release-04.00-shipping-20-655657");
 
-        var resp = _user.SocketClient.Execute(sockToken);
+        var resp = await _user.SocketClient.ExecuteAsync(sockToken);
 
         if (!resp.IsSuccessful)
             throw new Exception("Error reaching game.");
@@ -191,17 +191,17 @@ public class Authentication : RequestBase
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
 
-        _user.UserData = GetUserData();
+        _user.UserData = await GetUserData();
         WebsocketDetermineRegion();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Socket;
     }
 
-    public void AuthenticateWithCookies()
+    public async void AuthenticateWithCookies()
     {
-        IRestRequest initCookies = new RestRequest(authUrl, Method.POST);
+        RestRequest initCookies = new RestRequest(authUrl, Method.Post);
         initCookies.AddJsonBody(cookieJson);
-        var resp = _user.UserClient.Execute(initCookies);
+        var resp = await _user.UserClient.ExecuteAsync(initCookies);
 
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
@@ -215,12 +215,12 @@ public class Authentication : RequestBase
         ParseWebToken(authObj.response.parameters.uri);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
 
-        _user.tokenData.entitle = GetEntitlementToken();
+        _user.tokenData.entitle = await GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
 
-        _user.UserData = GetUserData();
+        _user.UserData = await GetUserData();
 
-        _user.UserRegion = GetUserRegion();
+        _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Cookie;
     }
@@ -235,51 +235,59 @@ public class Authentication : RequestBase
         _user.tokenData.idToken = Regex.Match(tokenURL, @"id_token=(.+?)&token_type=").Groups[1].Value;
     }
 
-    private string? GetEntitlementToken()
+    private async Task<string?> GetEntitlementToken()
     {
-        var request = new RestRequest(entitleUrl, Method.POST);
+        var request = new RestRequest(entitleUrl, Method.Post);
 
         request.AddJsonBody("{}");
 
-        var resp = _user.UserClient.Execute(request);
+        var resp = await _user.UserClient.ExecuteAsync(request);
 
         if (!resp.IsSuccessful)
             throw new Exception("Failed to get entitlement token.");
 
-        var entitlement_token = JObject.FromObject(JsonConvert.DeserializeObject(resp.Content));
+        
+        // Testing new Json Parsing 
+        string entitlement_token = "";
+        var respJson = JsonDocument.Parse(resp.Content);
+        if (respJson.RootElement.TryGetProperty("entitlements_token", out JsonElement tokenElement))
+        {
+            entitlement_token = tokenElement.GetString();
+        }
 
-        return (entitlement_token["entitlements_token"] ??
-                throw new InvalidOperationException("Entitlement Token not Found in Request.")).Value<string>();
+
+        return entitlement_token;
     }
-
-    private RiotUserData? GetUserData()
+ 
+    private async Task<RiotUserData?> GetUserData()
     {
-        IRestRequest userDataReq = new RestRequest(userInfoUrl, Method.GET);
-        var resp = _user.UserClient.Execute(userDataReq);
+        RestRequest userDataReq = new RestRequest(userInfoUrl, Method.Get);
+        var resp = await _user.UserClient.ExecuteAsync(userDataReq);
         if (!resp.IsSuccessful)
             throw new Exception("Failed to get UserData");
 
-        return JsonConvert.DeserializeObject<RiotUserData>(resp.Content);
+        return JsonSerializer.Deserialize<RiotUserData>(resp.Content);
     }
 
-    private RiotRegion GetUserRegion(string region = null)
+    private async Task<RiotRegion> GetUserRegion(string region = null)
     {
         var liveRegion = "";
         if (region is null)
         {
-            IRestRequest request = new RestRequest(regionUrl, Method.PUT);
+            RestRequest request = new RestRequest(regionUrl, Method.Put);
             var idTokData = new
             {
                 id_token = _user.tokenData.idToken
             };
             request.AddJsonBody(JsonSerializer.Serialize(idTokData));
-            var resp = _user.UserClient.Execute(request);
+            var resp = await _user.UserClient.ExecuteAsync(request);
             if (!resp.IsSuccessful)
                 throw new Exception("Failed to get user region.");
+            
+            JsonNode respNode = JsonNode.Parse(resp.Content);
+            var authObj = respNode["affinities"]["live"];
 
-            JToken authObj = JObject.FromObject(JsonConvert.DeserializeObject(resp.Content));
-
-            liveRegion = authObj["affinities"]["live"].Value<string>();
+            liveRegion = authObj.ToJsonString();
         }
         else
         {
@@ -362,12 +370,12 @@ public class Authentication : RequestBase
         {
             product = "valorant"
         };
-        var data = await _user.Requests.WebsocketRequest("/player-affinity/product/v1/token", Method.POST, "",
+        var data = await _user.Requests.WebsocketRequest("/player-affinity/product/v1/token", Method.Post, "",
             valorantData);
 
         var Affinities = JsonSerializer.Deserialize<WebsocketAffinities>((string) data.content);
 
-        _user.UserRegion = GetUserRegion(Affinities.affinities.live);
+        _user.UserRegion = await GetUserRegion(Affinities.affinities.live);
     }
 
     #endregion
@@ -379,7 +387,7 @@ public class Authentication : RequestBase
         // Method adds client ver header to both clients
 
         var resp = JsonSerializer.Deserialize<ValorantApi_VersionResp>(new RestClient()
-            .ExecuteAsync(new RestRequest("https://valorant-api.com/v1/version", Method.GET)).Result.Content);
+            .ExecuteAsync(new RestRequest("https://valorant-api.com/v1/version", Method.Get)).Result.Content);
 
         _user.UserClient.AddDefaultHeader("X-Riot-ClientVersion", resp.data.riotClientVersion);
         _user.SocketClient.AddDefaultHeader("X-Riot-ClientVersion", resp.data.riotClientVersion);

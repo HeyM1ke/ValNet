@@ -4,6 +4,7 @@ using ValNet.Objects.Authentication;
 using ValNet.Requests;
 using System.Net;
 using System.Text.Json;
+using WebSocketSharp;
 
 namespace ValNet;
 
@@ -34,9 +35,14 @@ public class RiotUser
     public RestClient SocketClient { get; set; }
     
     /// <summary>
+    /// Websocket.
+    /// </summary>
+    public WebSocket UserWebsocket;
+
+    /// <summary>
     /// CookieContainer used to hold User's Cookies
     /// </summary>
-    public CookieContainer UserCookieJar { get; set; }
+    public CookieContainer UserCookieJar;
     
     /// <summary>
     /// Authentication class that is used to authenticate user.
@@ -100,19 +106,28 @@ public class RiotUser
     }
 
 
-    private void UserSetup(){
-        UserCookieJar = new CookieContainer();
-        UserClient = new RestClient
+    private void UserSetup()
+    {
+        var optionsWebClient = new RestClientOptions()
         {
-            CookieContainer = UserCookieJar
+            CookieContainer = UserCookieJar,
+            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
+            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
         };
-
-        SocketClient = new RestClient
-        {
-            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-        };
-
         
+        var optionsClient = new RestClientOptions()
+        {
+            CookieContainer = UserCookieJar,
+            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
+        };
+        
+        
+        UserCookieJar = new CookieContainer();
+        UserClient = new RestClient(optionsClient);
+        SocketClient = new RestClient(optionsWebClient);
+
+
+
         Authentication = new (this);
         Requests = new (this);
         Store = new(this);
@@ -142,7 +157,7 @@ public class RiotUser
 
     internal async Task<bool> CheckPlayerInGame()
     {
-        var requestResp = await this.Requests.RiotGlzRequest($"/session/v1/sessions/{this.UserData.sub}", Method.GET);
+        var requestResp = await this.Requests.RiotGlzRequest($"/session/v1/sessions/{this.UserData.sub}", Method.Get);
 
         if (!requestResp.isSucc)
             return false;
