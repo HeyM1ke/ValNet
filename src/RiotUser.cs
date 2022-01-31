@@ -27,7 +27,7 @@ public class RiotUser
     /// <summary>
     /// User HTTPClient used for Web requests
     /// </summary>
-    internal RestClient UserClient { get; set; }
+    public RestClient UserClient { get; set; }
     
     /// <summary>
     /// User HTTPClient used for WebSocket requests
@@ -42,8 +42,7 @@ public class RiotUser
     /// <summary>
     /// CookieContainer used to hold User's Cookies
     /// </summary>
-    public CookieContainer UserCookieJar;
-    
+    public string lmaoTest;
     /// <summary>
     /// Authentication class that is used to authenticate user.
     /// </summary>
@@ -110,24 +109,18 @@ public class RiotUser
     {
         var optionsWebClient = new RestClientOptions()
         {
-            CookieContainer = UserCookieJar,
             RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
             UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
         };
         
         var optionsClient = new RestClientOptions()
         {
-            CookieContainer = UserCookieJar,
             UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
         };
         
-        
-        UserCookieJar = new CookieContainer();
         UserClient = new RestClient(optionsClient);
         SocketClient = new RestClient(optionsWebClient);
-
-
-
+        
         Authentication = new (this);
         Requests = new (this);
         Store = new(this);

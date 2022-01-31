@@ -17,11 +17,7 @@ public class Authentication : RequestBase
     private const string entitleUrl = "https://entitlements.auth.riotgames.com/api/token/v1";
     private const string userInfoUrl = "https://auth.riotgames.com/userinfo";
     private const string regionUrl = "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant";
-
-    private const string cookieJson =
-        "{\"client_id\":\"play-valorant-web-prod\",\"nonce\":\"1\",\"redirect_uri\":\"https://playvalorant.com/opt_in" +
-        "\",\"response_type\":\"token id_token\",\"scope\":\"account openid\"}";
-
+    private const string gameEntitlementUrl = "https://clientconfig.rpg.riotgames.com/api/v1/config/player?namespace=keystone.products.valorant.patchlines";
     #endregion
 
     #region Authentication Objects
@@ -45,8 +41,17 @@ public class Authentication : RequestBase
 
         // get initial cookies for auth
         RestRequest initCookies = new RestRequest(authUrl, Method.Post);
-        initCookies.AddJsonBody(cookieJson);
-        _user.UserClient.ExecuteAsync(initCookies);
+        
+        var cookieData = new {
+            client_id = "play-valorant-web-prod",
+            nonce = 1,
+            redirect_uri = "https://playvalorant.com/opt_in",
+            response_type = "token id_token",
+            scope = "account openid"
+        };
+        
+        initCookies.AddJsonBody(cookieData);
+        await _user.UserClient.ExecuteAsync(initCookies);
 
         // Auth with user details
 
@@ -59,7 +64,7 @@ public class Authentication : RequestBase
         };
 
         RestRequest loginRequest = new RestRequest(authUrl, Method.Put);
-        loginRequest.AddJsonBody(JsonSerializer.Serialize(authData));
+        loginRequest.AddJsonBody(authData);
         var resp = await _user.UserClient.ExecuteAsync(loginRequest);
 
         if (!resp.IsSuccessful)
@@ -97,7 +102,7 @@ public class Authentication : RequestBase
             rememberDevice = true
         };
 
-        multifactorRequest.AddJsonBody(JsonSerializer.Serialize(data));
+        multifactorRequest.AddJsonBody(data);
         var resp = await _user.UserClient.ExecuteAsync(multifactorRequest);
 
         if (!resp.IsSuccessful)
@@ -142,7 +147,15 @@ public class Authentication : RequestBase
     {
         // get initial cookies for auth
         RestRequest initCookies = new RestRequest(authUrl, Method.Post);
-        initCookies.AddJsonBody(cookieJson);
+        
+        var cookieData = new {
+            client_id = "play-valorant-web-prod",
+            nonce = 1,
+            redirect_uri = "https://playvalorant.com/opt_in",
+            response_type = "token id_token",
+            scope = "account openid"
+        };
+        initCookies.AddJsonBody(cookieData);
         await _user.UserClient.ExecuteAsync(initCookies);
 
         ParseWebToken(redirectUrl);
@@ -154,7 +167,7 @@ public class Authentication : RequestBase
         _user.UserData = await GetUserData();
         _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
-        _user.AuthType = AuthType.Cloud;
+        _user.AuthType = AuthType.Cookie;
     }
 
     public async void AuthenticateWithSocket()
@@ -197,10 +210,19 @@ public class Authentication : RequestBase
         _user.AuthType = AuthType.Socket;
     }
 
-    public async void AuthenticateWithCookies()
+    public async Task AuthenticateWithCookies()
     {
         RestRequest initCookies = new RestRequest(authUrl, Method.Post);
-        initCookies.AddJsonBody(cookieJson);
+        
+        var cookieData = new {
+            client_id = "play-valorant-web-prod",
+            nonce = 1,
+            redirect_uri = "https://playvalorant.com/opt_in",
+            response_type = "token id_token",
+            scope = "account openid"
+        };
+        
+        initCookies.AddJsonBody(cookieData);
         var resp = await _user.UserClient.ExecuteAsync(initCookies);
 
         if (!resp.IsSuccessful)
@@ -239,7 +261,12 @@ public class Authentication : RequestBase
     {
         var request = new RestRequest(entitleUrl, Method.Post);
 
-        request.AddJsonBody("{}");
+        var nullObj = new
+        {
+
+        };
+        
+        request.AddJsonBody(nullObj);
 
         var resp = await _user.UserClient.ExecuteAsync(request);
 
@@ -263,6 +290,7 @@ public class Authentication : RequestBase
     {
         RestRequest userDataReq = new RestRequest(userInfoUrl, Method.Get);
         var resp = await _user.UserClient.ExecuteAsync(userDataReq);
+        
         if (!resp.IsSuccessful)
             throw new Exception("Failed to get UserData");
 
@@ -279,7 +307,7 @@ public class Authentication : RequestBase
             {
                 id_token = _user.tokenData.idToken
             };
-            request.AddJsonBody(JsonSerializer.Serialize(idTokData));
+            request.AddJsonBody(idTokData);
             var resp = await _user.UserClient.ExecuteAsync(request);
             if (!resp.IsSuccessful)
                 throw new Exception("Failed to get user region.");
@@ -287,7 +315,8 @@ public class Authentication : RequestBase
             JsonNode respNode = JsonNode.Parse(resp.Content);
             var authObj = respNode["affinities"]["live"];
 
-            liveRegion = authObj.ToJsonString();
+            liveRegion = authObj.ToString();
+            _user.lmaoTest = authObj.ToString();
         }
         else
         {
@@ -320,9 +349,9 @@ public class Authentication : RequestBase
                 _user._riotUrl.glzURL = "https://glz-ap-1.ap.a.pvp.net";
                 _user._riotUrl.pdURL = "https://pd.ap.a.pvp.net";
                 return RiotRegion.AP;
-            default:
-                return RiotRegion.NA;
         }
+
+        return RiotRegion.AP;
     }
 
     #endregion
@@ -393,5 +422,26 @@ public class Authentication : RequestBase
         _user.SocketClient.AddDefaultHeader("X-Riot-ClientVersion", resp.data.riotClientVersion);
     }
 
+    // Switch back to private and change obj
+    public async Task<List<PatchlineObj>> GetPlayerGameEntitlements()
+    {
+        // "keystone.products.valorant.patchlines.pbe"
+        List<PatchlineObj> avaliblePatchLines = new List<PatchlineObj>();
+        var resp = await CustomRequest(gameEntitlementUrl, Method.Get);
+
+        JsonDocument doc = JsonDocument.Parse(resp.content.ToString());
+
+        foreach (var entitlement in doc.RootElement.EnumerateObject())
+        {
+            var split = entitlement.Name.Split('.');
+            avaliblePatchLines.Add(new()
+            {
+                PatchlineName = split[split.Length - 1].ToUpper(),
+                PatchlinePath = split[split.Length - 1]
+            });
+        }
+
+        return avaliblePatchLines;
+    }
     #endregion
 }
