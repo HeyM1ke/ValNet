@@ -16,7 +16,7 @@ public class RequestBase
         object body = null)
     {
         RestRequest pdRequest = new RestRequest($"{_user._riotUrl.pdURL}{endpoint}{extraParams}", method);
-        var resp = _user.UserClient.ExecuteAsync(pdRequest).Result;
+        var resp = await _user.UserClient.ExecuteAsync(pdRequest);
 
         DefaultApiResponse response = new()
         {

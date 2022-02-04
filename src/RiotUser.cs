@@ -3,6 +3,7 @@ using ValNet.Objects;
 using ValNet.Objects.Authentication;
 using ValNet.Requests;
 using System.Net;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using WebSocketSharp;
 
@@ -75,6 +76,8 @@ public class RiotUser
     /// </summary>
     public Contracts Contracts;
 
+    public Player Player;
+    
     /// <summary>
     /// Returns true if player is in game.
     /// </summary>
@@ -84,6 +87,8 @@ public class RiotUser
             return CheckPlayerInGame().Result;
         }
     }
+
+
     
     public RiotUser()
     {
@@ -112,13 +117,14 @@ public class RiotUser
             RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
             UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
         };
-        
+        ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls11 | System.Net.SecurityProtocolType.Tls11;
         var optionsClient = new RestClientOptions()
         {
             UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
         };
-        
         UserClient = new RestClient(optionsClient);
+        UserClient.AddDefaultHeader("X-Riot-ClientPlatform",
+            "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9");
         SocketClient = new RestClient(optionsWebClient);
         
         Authentication = new (this);
@@ -127,6 +133,7 @@ public class RiotUser
         Inventory = new(this);
         Party = new(this);
         Contracts = new(this);
+        Player = new(this);
     }
    
 

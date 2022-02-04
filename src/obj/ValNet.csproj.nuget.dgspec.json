@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj": {}
+    "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj": {
+    "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj",
+        "projectUniqueName": "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
         "projectName": "ValNet",
-        "projectPath": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\ValNet.csproj",
-        "packagesPath": "C:\\Users\\Michael\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Michael\\Documents\\GitHub\\ValNet\\src\\obj\\",
+        "projectPath": "E:\\Valorant Projects\\ValNet\\src\\ValNet.csproj",
+        "packagesPath": "C:\\Users\\Mike\\.nuget\\packages\\",
+        "outputPath": "E:\\Valorant Projects\\ValNet\\src\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Michael\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Mike\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -64,7 +64,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.101\\RuntimeIdentifierGraph.json"
         }
       }
     }
