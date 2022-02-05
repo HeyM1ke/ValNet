@@ -26,7 +26,6 @@ public class Contracts : RequestBase
 
         if (currentBPContract is not null)
             return currentBPContract;
-        else
-            throw new Exception("Could not find current BP");
+        throw new Exception("Could not find current BP");
     }
 }

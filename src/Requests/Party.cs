@@ -1,21 +1,20 @@
 ﻿using System.Text.Json;
 using RestSharp;
-using ValNet.Objects.Inventory;
 using ValNet.Objects.Party;
 
 namespace ValNet.Requests;
 
 public class Party : RequestBase
 {
-    public string PartyId { get; set; }
-
     public Party(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
 
+    public string PartyId { get; set; }
+
     /// <summary>
-    ///  Internal Method ran by the riotuser obj, to setup the party class.
+    ///     Internal Method ran by the riotuser obj, to setup the party class.
     /// </summary>
     internal async void InitialPartySetup()
     {
@@ -36,7 +35,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Creates a new Party : Generates new ID
+    ///     Creates a new Party : Generates new ID
     /// </summary>
     /// <returns>Returns True if new party is created, Throws an exception if party cannot be created.</returns>
     /// <exception cref="Exception">Throws Exception when new party cannot be created</exception>
@@ -52,7 +51,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Removes player from party from id given
+    ///     Removes player from party from id given
     /// </summary>
     /// <returns>Returns True if player is removed, Throws an exception if an error is hit.</returns>
     /// <exception cref="Exception">Throws Exception when an error is hit</exception>
@@ -66,7 +65,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Gets Party Information
+    ///     Gets Party Information
     /// </summary>
     /// <param name="PartyId">Checks PartyId Given, If no ID is given operation is ran on current user's party</param>
     /// <returns></returns>
@@ -90,7 +89,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Sets Current User's Ready Status in the party.
+    ///     Sets Current User's Ready Status in the party.
     /// </summary>
     /// <param name="ReadyState">Value set as ready or not ready</param>
     /// <returns>Default Party Obj with basic party information.</returns>
@@ -114,7 +113,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshes Competitive Tier
+    ///     Refreshes Competitive Tier
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">An error thrown when Competitive Tier cannot be refreshed.</exception>
@@ -132,7 +131,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshes Player Identitys
+    ///     Refreshes Player Identitys
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">Error thrown when Player Identitys fails.</exception>
@@ -150,7 +149,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshs Party Pings
+    ///     Refreshs Party Pings
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">Error thrown when Party Pings fails.</exception>
@@ -168,7 +167,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Changes party queue to specified mode.
+    ///     Changes party queue to specified mode.
     /// </summary>
     /// <param name="QueueId">ID for Gamemode to swap party to.</param>
     /// <returns></returns>
@@ -194,7 +193,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Changes party queue to specified mode.
+    ///     Changes party queue to specified mode.
     /// </summary>
     /// <param name="Queue">ValorantQueueEnum Value, passed in</param>
     /// <returns></returns>

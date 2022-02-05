@@ -2,8 +2,8 @@
 
 public class DefaultApiResponse
 {
-    public bool isSucc;
-    public object content;
-    public int StatusCode;
     public ApiError ApiError;
+    public object content;
+    public bool isSucc;
+    public int StatusCode;
 }

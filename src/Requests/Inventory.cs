@@ -6,12 +6,12 @@ namespace ValNet.Requests;
 
 public class Inventory : RequestBase
 {
-    public PlayerInventory CurrentInventory { get; set; }
-
     public Inventory(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
+
+    public PlayerInventory CurrentInventory { get; set; }
 
     public async Task<PlayerInventory> GetPlayerInventory()
     {

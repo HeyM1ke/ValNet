@@ -1,17 +1,17 @@
-﻿using RestSharp;
-using System.Text.Json;
+﻿using System.Text.Json;
+using RestSharp;
 using ValNet.Objects.Store;
 
 namespace ValNet.Requests;
 
 public class Store : RequestBase
 {
-    public PlayerStore PlayerStore { get; set; }
-
     public Store(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
+
+    public PlayerStore PlayerStore { get; set; }
 
     public async Task<PlayerStore> GetPlayerStore()
     {
