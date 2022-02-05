@@ -1,21 +1,20 @@
 ﻿using System.Text.Json;
 using RestSharp;
-using ValNet.Objects.Inventory;
 using ValNet.Objects.Party;
 
 namespace ValNet.Requests;
 
 public class Party : RequestBase
 {
-    public string PartyId { get; set; }
-
     public Party(RiotUser pUser) : base(pUser)
     {
         _user = pUser;
     }
 
+    public string PartyId { get; set; }
+
     /// <summary>
-    ///  Internal Method ran by the riotuser obj, to setup the party class.
+    ///     Internal Method ran by the riotuser obj, to setup the party class.
     /// </summary>
     internal async void InitialPartySetup()
     {
@@ -25,7 +24,7 @@ public class Party : RequestBase
 
     public async Task<PartyFetchPlayerObj> PartyFetchPlayer()
     {
-        var resp = await RiotGlzRequest($"/parties/v1/players/{_user.UserData.sub}", Method.GET);
+        var resp = await RiotGlzRequest($"/parties/v1/players/{_user.UserData.sub}", Method.Get);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Player Party Information");
@@ -36,7 +35,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Creates a new Party : Generates new ID
+    ///     Creates a new Party : Generates new ID
     /// </summary>
     /// <returns>Returns True if new party is created, Throws an exception if party cannot be created.</returns>
     /// <exception cref="Exception">Throws Exception when new party cannot be created</exception>
@@ -44,7 +43,7 @@ public class Party : RequestBase
     {
         //method creates a new party by removing yourself from the party
 
-        var resp = await RiotGlzRequest($"/parties/v1/players/{_user.UserData.sub}", Method.DELETE);
+        var resp = await RiotGlzRequest($"/parties/v1/players/{_user.UserData.sub}", Method.Delete);
 
         if (!resp.isSucc)
             throw new Exception("Failed to Create new party");
@@ -52,13 +51,13 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Removes player from party from id given
+    ///     Removes player from party from id given
     /// </summary>
     /// <returns>Returns True if player is removed, Throws an exception if an error is hit.</returns>
     /// <exception cref="Exception">Throws Exception when an error is hit</exception>
     public async Task<bool> RemovePlayerFromParty(string PlayerId)
     {
-        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/members/{PlayerId}", Method.DELETE);
+        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/members/{PlayerId}", Method.Delete);
 
         if (!resp.isSucc)
             throw new Exception("Failed to Remove player");
@@ -66,7 +65,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Gets Party Information
+    ///     Gets Party Information
     /// </summary>
     /// <param name="PartyId">Checks PartyId Given, If no ID is given operation is ran on current user's party</param>
     /// <returns></returns>
@@ -79,7 +78,7 @@ public class Party : RequestBase
         else
             pId = PartyId;
 
-        var resp = await RiotGlzRequest($"/parties/v1/parties/{pId}", Method.GET);
+        var resp = await RiotGlzRequest($"/parties/v1/parties/{pId}", Method.Get);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Party Information");
@@ -90,7 +89,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Sets Current User's Ready Status in the party.
+    ///     Sets Current User's Ready Status in the party.
     /// </summary>
     /// <param name="ReadyState">Value set as ready or not ready</param>
     /// <returns>Default Party Obj with basic party information.</returns>
@@ -103,7 +102,7 @@ public class Party : RequestBase
         };
 
         var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/setReady",
-            Method.POST, null, data);
+            Method.Post, null, data);
 
         if (!resp.isSucc)
             throw new Exception("Failed to set Ready Status");
@@ -114,14 +113,14 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshes Competitive Tier
+    ///     Refreshes Competitive Tier
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">An error thrown when Competitive Tier cannot be refreshed.</exception>
     public async Task<FetchPartyObj> RefreshCompetitiveTier()
     {
         var resp = await RiotGlzRequest(
-            $"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/refreshCompetitiveTier", Method.POST);
+            $"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/refreshCompetitiveTier", Method.Post);
 
         if (!resp.isSucc)
             throw new Exception("Failed to Refresh Competitive Tier");
@@ -132,14 +131,14 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshes Player Identitys
+    ///     Refreshes Player Identitys
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">Error thrown when Player Identitys fails.</exception>
     public async Task<FetchPartyObj> RefreshPlayerIdentity()
     {
         var resp = await RiotGlzRequest(
-            $"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/refreshPlayerIdentity", Method.POST);
+            $"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/refreshPlayerIdentity", Method.Post);
 
         if (!resp.isSucc)
             throw new Exception("Failed to Refresh Player Identity");
@@ -150,14 +149,14 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Refreshs Party Pings
+    ///     Refreshs Party Pings
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception">Error thrown when Party Pings fails.</exception>
     public async Task<FetchPartyObj> RefreshPings()
     {
         var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/members/{_user.UserData.sub}/refreshPings",
-            Method.POST);
+            Method.Post);
 
         if (!resp.isSucc)
             throw new Exception("Failed to Refresh Refresh Pings");
@@ -168,7 +167,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Changes party queue to specified mode.
+    ///     Changes party queue to specified mode.
     /// </summary>
     /// <param name="QueueId">ID for Gamemode to swap party to.</param>
     /// <returns></returns>
@@ -180,7 +179,7 @@ public class Party : RequestBase
             queueId = QueueId
         };
 
-        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/queue", Method.POST, null, data);
+        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/queue", Method.Post, null, data);
 
         if (resp.StatusCode == 403)
             throw new Exception("Forbidden : Queue Selected is Disabled");
@@ -194,7 +193,7 @@ public class Party : RequestBase
     }
 
     /// <summary>
-    /// Changes party queue to specified mode.
+    ///     Changes party queue to specified mode.
     /// </summary>
     /// <param name="Queue">ValorantQueueEnum Value, passed in</param>
     /// <returns></returns>
@@ -206,7 +205,7 @@ public class Party : RequestBase
             queueId = Queue.ToString()
         };
 
-        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/queue", Method.POST, null, data);
+        var resp = await RiotGlzRequest($"/parties/v1/parties/{PartyId}/queue", Method.Post, null, data);
 
         if (resp.StatusCode == 403)
             throw new Exception("Forbidden : Queue Selected is Disabled");

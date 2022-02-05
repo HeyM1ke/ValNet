@@ -15,7 +15,7 @@ public class Contracts : RequestBase
 
     public async Task<ContactsFetchObj.Contract> GetCurrentBattlepass()
     {
-        var resp = await RiotPdRequest($"/contracts/v1/contracts/{_user.UserData.sub}", Method.GET);
+        var resp = await RiotPdRequest($"/contracts/v1/contracts/{_user.UserData.sub}", Method.Get);
 
         if (!resp.isSucc)
             throw new Exception("Failed to get Player Store");
@@ -26,7 +26,6 @@ public class Contracts : RequestBase
 
         if (currentBPContract is not null)
             return currentBPContract;
-        else
-            throw new Exception("Could not find current BP");
+        throw new Exception("Could not find current BP");
     }
 }
