@@ -1,4 +1,5 @@
-﻿using System.Security.Authentication;
+﻿using System.Net;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -72,6 +73,11 @@ public class Authentication : RequestBase
         loginRequest.AddJsonBody(authData);
         var resp = await _user.UserClient.ExecuteAsync(loginRequest);
 
+        if (!resp.IsSuccessful && resp.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new Exception("Sorry, you are not allowed to login. " + resp.Content);
+        }
+        
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
 
@@ -240,6 +246,11 @@ public class Authentication : RequestBase
         initCookies.AddJsonBody(cookieData);
         var resp = await _user.UserClient.ExecuteAsync(initCookies);
 
+        if (!resp.IsSuccessful && resp.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new Exception("Sorry, you are not allowed to login. " + resp.Content);
+        }
+        
         if (!resp.IsSuccessful)
             throw new Exception("Failed Login, please check credentials and try again.");
 
