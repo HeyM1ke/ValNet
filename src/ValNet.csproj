@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageVersion>0.0.0.4</PackageVersion>
+    <PackageVersion>0.0.0.3</PackageVersion>
     <Authors>Mike</Authors>
     <PackageProjectUrl>https://github.com/RumbleMike/ValNet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/RumbleMike/ValNet</RepositoryUrl>
