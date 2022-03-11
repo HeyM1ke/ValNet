@@ -20,7 +20,7 @@ public class PlayerInventory
         public string PreferredLevelBorderID { get; set; }
         public bool HideAccountLevel { get; set; }
     }
-    
+        
     public class Gun
     {
         public string ID { get; set; }

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
@@ -24,10 +25,12 @@ public class Authentication : RequestBase
     private const string entitleUrl = "https://entitlements.auth.riotgames.com/api/token/v1";
     private const string userInfoUrl = "https://auth.riotgames.com/userinfo";
     private const string regionUrl = "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant";
-
+    private const string xmppPasUrl = "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat";
     private const string gameEntitlementUrl =
         "https://clientconfig.rpg.riotgames.com/api/v1/config/player?namespace=keystone.products.valorant.patchlines";
 
+    private const string cookieReauth =
+        "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1";
     #endregion
 
     #region Authentication Objects
@@ -146,6 +149,7 @@ public class Authentication : RequestBase
         _user.UserData = await GetUserData();
         _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
+        GetRiotXmppPasToken();
         _user.AuthType = AuthType.Cloud;
 
         return new AuthenticationStatus
@@ -157,17 +161,16 @@ public class Authentication : RequestBase
     public async void AuthenticateWithToken(string redirectUrl)
     {
         // get initial cookies for auth
-        var initCookies = new RestRequest(authUrl, Method.Post);
+        var initCookies = new RestRequest(cookieReauth, Method.Get);
 
-        var cookieData = new
+        /*var cookieData = new
         {
             client_id = "play-valorant-web-prod",
             nonce = 1,
             redirect_uri = "https://playvalorant.com/opt_in",
             response_type = "token id_token",
             scope = "account openid"
-        };
-        initCookies.AddJsonBody(cookieData);
+        };*/
         await _user.UserClient.ExecuteAsync(initCookies);
 
         ParseWebToken(redirectUrl);
@@ -179,6 +182,7 @@ public class Authentication : RequestBase
         _user.UserData = await GetUserData();
         _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
+        GetRiotXmppPasToken();
         _user.AuthType = AuthType.Cookie;
     }
 
@@ -221,6 +225,7 @@ public class Authentication : RequestBase
         _user.tokenData.idToken = idToken.authorization.idToken.token;
         _user.UserRegion = await GetUserRegion();
         _user.UserData = await GetUserData();
+        GetRiotXmppPasToken();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Socket;
 
@@ -270,6 +275,7 @@ public class Authentication : RequestBase
 
         _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
+        GetRiotXmppPasToken();
         _user.AuthType = AuthType.Cookie;
     }
 
@@ -470,5 +476,11 @@ public class Authentication : RequestBase
         return avaliblePatchLines;
     }
 
+    public async void GetRiotXmppPasToken()
+    {
+        var resp = await CustomRequest(xmppPasUrl, Method.Get);
+        _user.tokenData.pasToken = resp.content.ToString();
+        
+    }
     #endregion
 }
