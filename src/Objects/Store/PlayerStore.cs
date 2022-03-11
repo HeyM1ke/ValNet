@@ -46,7 +46,7 @@ public class DailySkinCarousel
 public class NightMarket
 {
     [JsonPropertyName("BonusStoreOffers")]
-    List<NightMarketOffer> NightMarketOffers { get; set; }
+    public List<NightMarketOffer> NightMarketOffers { get; set; }
     
     [JsonPropertyName("BonusStoreRemainingDurationInSeconds")]
     public int NightMarketTimeRemainingInSeconds { get; set; }

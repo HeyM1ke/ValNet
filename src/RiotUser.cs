@@ -185,4 +185,5 @@ public struct RiotTokens
     public string? access;
     public string? entitle;
     public string? idToken;
+    public string? pasToken;
 }

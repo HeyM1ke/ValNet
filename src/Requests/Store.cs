@@ -34,4 +34,15 @@ public class Store : RequestBase
 
         return resp.content;
     }
+
+    public async Task<PlayerWallet> GetPlayerBalance()
+    {
+        var resp = await RiotPdRequest($"/store/v1/wallet/{_user.UserData.sub}", Method.Get);
+        
+        if (!resp.isSucc)
+            throw new Exception("Failed to get Player Balance");
+
+        
+        return JsonSerializer.Deserialize<PlayerWallet>(resp.content.ToString());
+    }
 }
