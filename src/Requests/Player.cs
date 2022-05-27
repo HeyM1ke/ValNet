@@ -12,9 +12,12 @@ public class Player : RequestBase
     }
 
 
-    // Get Player MMR
-
-    public async Task<PlayerMMRObj?> GetPlayerMmr()
+    /// <summary>
+    /// Get Player's MMR / Stats
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<PlayerMMRObj> GetPlayerMmr()
     {
         var resp = await RiotPdRequest($"/mmr/v1/players/{_user.UserData.sub}", Method.Get);
 
@@ -25,7 +28,7 @@ public class Player : RequestBase
     }
 
     /// <summary>
-    ///     Get Player Competitive Updates, up to 15 matches.
+    /// Get Player Competitive Updates, up to 15 matches.
     /// </summary>
     /// <returns>CompetitiveUpdateObj</returns>
     /// <exception cref="Exception"></exception>
@@ -42,7 +45,7 @@ public class Player : RequestBase
     }
 
     /// <summary>
-    ///     Get Player's Match History
+    /// Get Player's Match History up to 15 matches.
     /// </summary>
     /// <returns>MatchHistoryObj With Data</returns>
     /// <exception cref="Exception"></exception>
@@ -57,13 +60,13 @@ public class Player : RequestBase
     }
 
     /// <summary>
-    ///     Get Player's Match History
+    /// Get Player's Match History
     /// </summary>
     /// <param name="start">Starting Index for matches to look for</param>
     /// <param name="end">Ending Index for matches to look for</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<object?> GetPlayerMatchHistory(int start, int end)
+    public async Task<MatchHistoryObj> GetPlayerMatchHistory(int start, int end)
     {
         var resp = await RiotPdRequest(
             $"/match-history/v1/history/{_user.UserData.sub}?startIndex={start}&endIndex={end}", Method.Get);
@@ -71,30 +74,47 @@ public class Player : RequestBase
         if (!resp.isSucc)
             throw new Exception("Failed to get Match History");
 
-        return JsonSerializer.Deserialize<object>(resp.content.ToString());
+        return JsonSerializer.Deserialize<MatchHistoryObj>(resp.content.ToString());
     }
 
-    // Get Player's Entire History
-    /*public async Task<Object?> GetPlayerEntireMatchHistory(string puuid, string region)
-    {
-        var resp = await RiotPdRequest($"/mmr/v1/players/{_user.UserData.sub}", Method.Get);
-
-        if (!resp.isSucc)
-            throw new Exception("Failed to get Competitive Updates");
-
-        return JsonSerializer.Deserialize<object>(resp.content.ToString());
-    }*/
-    // Get Other Players History
-    /*public async Task<Object?> GetPlayerMatchHistory(string puuid, string region)
+    /// <summary>
+    /// Gets Player's History from the ID Provided
+    /// </summary>
+    /// <param name="puuid">Player Id To Look for</param>
+    /// <param name="region">Region of Player Id</param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<MatchHistoryObj> GetPlayerMatchHistory(string puuid, string region)
     {
         if (string.IsNullOrEmpty(puuid))
             throw new Exception("Player id is empty/null");
+
+        var regionUrl = await _user.Authentication.GetRegionPdUrl(region);
         
-        var resp = await RiotPdRequest($"/match-history/v1/history/{puuid}", Method.Get);
+        if(region == null)
+            throw new Exception("Player Region is not valid for request.");
+        
+        var resp = await CustomRequest("{regionUrl}/match-history/v1/history/{puuid}", Method.Get);
 
         if (!resp.isSucc)
-            throw new Exception("Failed to get Competitive Updates");
+            throw new Exception("Failed to get Other Players Match History");
 
-        return JsonSerializer.Deserialize<object>(resp.content.ToString());
-    }*/
+        return JsonSerializer.Deserialize<MatchHistoryObj>(resp.content.ToString());
+    }
+
+    /// <summary>
+    /// Gets Player Progression (Account Level)
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<PlayerProgressionObj> GetPlayerProgression()
+    {
+        var resp = await RiotPdRequest($"/account-xp/v1/players/{_user.UserData.sub}", Method.Get);
+
+        if (!resp.isSucc)
+            throw new Exception("Failed to get User's Account Progression");
+
+        return JsonSerializer.Deserialize<PlayerProgressionObj>(resp.content.ToString());
+    }
+
 }

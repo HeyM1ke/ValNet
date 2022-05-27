@@ -60,19 +60,6 @@ public class NightMarket
         public bool IsSeen { get; set; }
     }
 }
-
-public class NightMarketOffer
-{
-    public string OfferID { get; set; }
-    public bool IsDirectPurchase { get; set; }
-    public string StartDate { get; set; }
-    
-    [JsonPropertyName("Cost")]
-    public Cost OriginalCost { get; set; }
-    public List<ItemOffer> Rewards { get; set; }
-
-}
-
 public class ItemOffer
 {
     public string ItemTypeID { get; set; }

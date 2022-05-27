@@ -15,7 +15,7 @@ namespace ValNet;
 public class RiotUser
 {
     internal RiotLoginData loginData;
-    public RiotRegion UserRegion;
+    public RiotRegion UserRegion = RiotRegion.UNKNOWN;
     public RiotUrl _riotUrl = new();
     public RiotTokens tokenData = new();
     public RiotUserData? UserData;
@@ -107,13 +107,12 @@ public class RiotUser
         var optionsWebClient = new RestClientOptions()
         {
             RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
-            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
+            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)"
         };
-        ServicePointManager.SecurityProtocol =
-            SecurityProtocolType.Tls13 | SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+        System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var optionsClient = new RestClientOptions()
         {
-            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows;10;;Professional, x64)"
+            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)"
         };
         UserClient = new RestClient(optionsClient);
        
