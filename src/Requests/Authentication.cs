@@ -3,6 +3,7 @@
 using RestSharp;
 
 using System.Net;
+using System.Net.Http.Json;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
@@ -105,6 +106,11 @@ public class Authentication : RequestBase
         var authObj = loginResponse.Data;
         if (authObj.error is not null) throw new Exception("Error: Username/Password is incorrect");
 
+        foreach (var (name, value) in loginResponse.Cookies)
+        {
+            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+        }
+
         //Determine if Two Factor is needed
         if (authObj.type.Equals("multifactor"))
             return new AuthenticationStatus
@@ -114,32 +120,34 @@ public class Authentication : RequestBase
                 multifactorData = authObj.multifactor
             };
 
-        foreach (var (name, value) in loginResponse.Cookies)
-        {
-            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
-        }
-
         return await CompleteAuth(authObj);
     }
 
     public async Task<AuthenticationStatus> AuthenticateTwoFactorCode(string code)
     {
-        var multifactorRequest = new RestRequest(authUrl, Method.Put);
         var data = new
         {
             type = "multifactor",
             code,
             rememberDevice = true
         };
+        var authResponse = new CurlResponse<AuthorizationJson>();
+        await Cli.Wrap("curl")
+            .WithArguments(builder => builder
+                .Add("-i -X PUT", false)
+                .Add("-H").Add("Content-Type: application/json")
+                .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
+                .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
+                .Add("-d").Add(JsonSerializer.Serialize(data, _jsonOptions))
+                .Add(authUrl))
+            .WithValidation(CommandResultValidation.None)
+            .WithStandardOutputPipe(authResponse.GetPipeTarget())
+            .ExecuteAsync();
 
-        multifactorRequest.AddJsonBody(data);
-        var resp = await _user.UserClient.ExecuteAsync(multifactorRequest);
-
-        if (!resp.IsSuccessful)
+        if (authResponse.Status != HttpStatusCode.OK)
             throw new Exception("An Error has Occurred");
 
-        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(resp.Content);
-
+        var authObj = authResponse.Data;
         if (authObj.error is not null && authObj.error.Equals("multifactor_attempt_failed"))
             return new AuthenticationStatus
             {
@@ -284,6 +292,11 @@ public class Authentication : RequestBase
         var authObj = authResponse.Data;
         if (authObj is null || authObj.response is null)
             throw new Exception("Could not authenticate properly.");
+
+        foreach (var (name, value) in authResponse.Cookies)
+        {
+            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+        }
 
         ParseWebToken(authObj.response.parameters.uri);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
@@ -474,9 +487,8 @@ public class Authentication : RequestBase
     private void GetCurrentGameVersion()
     {
         // Method adds client ver header to both clients
-
-        var resp = JsonSerializer.Deserialize<ValorantApi_VersionResp>(new RestClient()
-            .ExecuteAsync(new RestRequest("https://valorant-api.com/v1/version")).Result.Content);
+        using var client = new HttpClient();
+        var resp = client.GetFromJsonAsync<ValorantApi_VersionResp>("https://valorant-api.com/v1/version").GetAwaiter().GetResult();
 
         _user.UserClient.AddDefaultHeader("X-Riot-ClientVersion", resp.data.riotClientVersion);
         _user.SocketClient.AddDefaultHeader("X-Riot-ClientVersion", resp.data.riotClientVersion);
