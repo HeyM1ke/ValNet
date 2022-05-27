@@ -29,7 +29,7 @@ public class Contracts : RequestBase
 
         var currentBPContract = des.Contracts.Find(contact => contact.ContractDefinitionID == currentBattlepassId);
 
-        if (currentBPContract is not null)
+        if (currentBPContract != null)
             return currentBPContract;
         throw new Exception("Could not find current BP");
     }
@@ -50,8 +50,27 @@ public class Contracts : RequestBase
 
         var currentBPContract = des.Contracts.Find(contact => contact.ContractDefinitionID == contractId);
 
-        if (currentBPContract is not null)
+        if (currentBPContract != null)
             return currentBPContract;
+        throw new Exception("Could not find Contract");
+    }
+    
+    /// <summary>
+    /// Returns all User Contracts
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<ContactsFetchObj> GetAllContracts()
+    {
+        var resp = await RiotPdRequest($"/contracts/v1/contracts/{_user.UserData.sub}", Method.Get);
+
+        if (!resp.isSucc)
+            throw new Exception("Failed to get Player Contacts");
+
+        var data = JsonSerializer.Deserialize<ContactsFetchObj>(resp.content.ToString());
+
+        if (data != null)
+            return data;
         throw new Exception("Could not find Contract");
     }
 }

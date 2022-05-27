@@ -2,5 +2,5 @@
 
 public enum RiotRegion
 {
-    NA,EU,BR,AP,LATAM,KR
+    UNKNOWN,NA,EU,BR,AP,LATAM,KR
 }

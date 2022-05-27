@@ -13,8 +13,7 @@ public class RequestBase
         _user = pUser;
     }
 
-    internal async Task<DefaultApiResponse> RiotPdRequest(string endpoint, Method method, string extraParams = null,
-        object body = null)
+    internal async Task<DefaultApiResponse> RiotPdRequest(string endpoint, Method method, string extraParams = null, object body = null)
     {
         var pdRequest = new RestRequest($"{_user._riotUrl.pdURL}{endpoint}{extraParams}", method);
         var resp = await _user.UserClient.ExecuteAsync(pdRequest);
@@ -28,9 +27,7 @@ public class RequestBase
 
         return response;
     }
-
-    internal async Task<DefaultApiResponse> RiotGlzRequest(string endpoint, Method method, string extraParams = null,
-        object body = null)
+    internal async Task<DefaultApiResponse> RiotGlzRequest(string endpoint, Method method, string extraParams = null, object body = null)
     {
         var glzRequest = new RestRequest($"{_user._riotUrl.glzURL}{endpoint}{extraParams}", method);
         var resp = _user.UserClient.ExecuteAsync(glzRequest).Result;
@@ -45,9 +42,7 @@ public class RequestBase
 
         return response;
     }
-
-    internal async Task<DefaultApiResponse> CustomRequest(string url, Method method, string extraParams = null,
-        object body = null)
+    internal async Task<DefaultApiResponse> CustomRequest(string url, Method method, string extraParams = null, object body = null)
     {
         var customReq = new RestRequest($"{url}{extraParams}", method);
         var resp = _user.UserClient.ExecuteAsync(customReq).Result;
@@ -61,16 +56,10 @@ public class RequestBase
 
         return response;
     }
-
-
-    public async Task<DefaultApiResponse> WebsocketRequest(string endpoint, Method method, string extraParams = null,
-        object body = null)
+    public async Task<DefaultApiResponse> WebsocketRequest(string endpoint, Method method, string extraParams = null, object body = null)
     {
-        var socketReq =
-            new RestRequest($"https://127.0.0.1:{_user.Authentication.userLockfile.port}{endpoint}{extraParams}",
-                method);
-        socketReq.AddHeader("Authorization",
-            $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes($"riot:{_user.Authentication.userLockfile.password}"))}");
+        var socketReq = new RestRequest($"https://127.0.0.1:{_user.Authentication.userLockfile.port}{endpoint}{extraParams}", method);
+        socketReq.AddHeader("Authorization", $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes($"riot:{_user.Authentication.userLockfile.password}"))}");
         var data = JsonSerializer.Serialize(body);
         socketReq.AddJsonBody(data);
         var resp = await _user.SocketClient.ExecuteAsync(socketReq);
