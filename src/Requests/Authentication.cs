@@ -147,6 +147,11 @@ public class Authentication : RequestBase
         if (authResponse.Status != HttpStatusCode.OK)
             throw new Exception("An Error has Occurred");
 
+        foreach (var (name, value) in authResponse.Cookies)
+        {
+            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+        }
+
         var authObj = authResponse.Data;
         if (authObj.error is not null && authObj.error.Equals("multifactor_attempt_failed"))
             return new AuthenticationStatus
@@ -158,14 +163,7 @@ public class Authentication : RequestBase
             };
 
         if (authObj.type.Equals("response"))
-        {
-            foreach (var (name, value) in authResponse.Cookies)
-            {
-                _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
-            }
-
             return await CompleteAuth(authObj);
-        }
 
         throw new Exception("Unknown Error has occured.");
     }
