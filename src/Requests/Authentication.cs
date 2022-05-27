@@ -157,7 +157,15 @@ public class Authentication : RequestBase
                 error = authObj.error
             };
 
-        if (authObj.type.Equals("response")) return await CompleteAuth(authObj);
+        if (authObj.type.Equals("response"))
+        {
+            foreach (var (name, value) in authResponse.Cookies)
+            {
+                _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+            }
+
+            return await CompleteAuth(authObj);
+        }
 
         throw new Exception("Unknown Error has occured.");
     }
