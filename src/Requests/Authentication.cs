@@ -114,6 +114,11 @@ public class Authentication : RequestBase
                 multifactorData = authObj.multifactor
             };
 
+        foreach (var (name, value) in loginResponse.Cookies)
+        {
+            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+        }
+
         return await CompleteAuth(authObj);
     }
 
@@ -263,6 +268,7 @@ public class Authentication : RequestBase
                 .Add("-i -X POST", false)
                 .Add("-H").Add("Content-Type: application/json")
                 .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
+                .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
                 .Add("-d").Add(JsonSerializer.Serialize(cookieData, _jsonOptions))
                 .Add(authUrl))
             .WithValidation(CommandResultValidation.None)
