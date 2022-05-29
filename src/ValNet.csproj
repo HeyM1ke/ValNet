@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageVersion>0.0.0.9</PackageVersion>
+    <PackageVersion>0.0.0.10</PackageVersion>
     <Authors>Mike</Authors>
     <PackageProjectUrl>https://github.com/HeyM1ke/ValNet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/HeyM1ke/ValNet</RepositoryUrl>

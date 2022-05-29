@@ -313,8 +313,10 @@ public class Authentication : RequestBase
         _user.UserData = await GetUserData();
 
         _user.UserRegion = await GetUserRegion();
+        
         GetCurrentGameVersion();
         GetRiotXmppPasToken();
+        
         _user.AuthType = AuthType.Cookie;
     }
 
