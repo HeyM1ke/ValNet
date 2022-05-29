@@ -2,6 +2,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 namespace ValNet.Objects;
@@ -48,9 +49,9 @@ public class CurlResponse
         Cookies = new Dictionary<string, string>();
     }
 
-    public PipeTarget GetPipeTarget() => PipeTarget.ToDelegate(Callback);
+    public PipeTarget GetPipeTarget() => PipeTarget.ToDelegate(Callback, Encoding.UTF8);
 
-    public void Callback(string line)
+    public void Callback(string? line)
     {
         if (_data)
         {
