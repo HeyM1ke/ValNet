@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageVersion>0.0.0.8</PackageVersion>
+    <PackageVersion>0.0.0.12-alpha</PackageVersion>
     <Authors>Mike</Authors>
     <PackageProjectUrl>https://github.com/HeyM1ke/ValNet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/HeyM1ke/ValNet</RepositoryUrl>
@@ -15,7 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RestSharp" Version="107.1.3-alpha.0.2" />
+    <PackageReference Include="CliWrap" Version="3.4.4" />
+    <PackageReference Include="RestSharp" Version="107.3.0" />
     <PackageReference Include="websocketsharp.core" Version="1.0.0" />
   </ItemGroup>
 

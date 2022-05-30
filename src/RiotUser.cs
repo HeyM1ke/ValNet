@@ -4,6 +4,7 @@ using ValNet.Objects.Authentication;
 using ValNet.Requests;
 using System.Net;
 using System.Reflection.Metadata;
+using System.Security.Authentication;
 using System.Text.Json;
 using WebSocketSharp;
 
@@ -25,6 +26,7 @@ public class RiotUser
     /// </summary>
     public AuthType AuthType;
 
+    public RequestClient AuthClient { get; set; }
     /// <summary>
     /// User HTTPClient used for Web requests
     /// </summary>
@@ -114,6 +116,9 @@ public class RiotUser
         {
             UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)"
         };
+        
+        AuthClient = new RequestClient();
+        
         UserClient = new RestClient(optionsClient);
        
         SocketClient = new RestClient(optionsWebClient);

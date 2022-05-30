@@ -84,7 +84,8 @@ public class Player : RequestBase
     /// <param name="region">Region of Player Id</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<MatchHistoryObj> GetPlayerMatchHistory(string puuid, string region)
+    
+    /*public async Task<MatchHistoryObj> GetPlayerMatchHistory(string puuid, string region)
     {
         if (string.IsNullOrEmpty(puuid))
             throw new Exception("Player id is empty/null");
@@ -100,7 +101,7 @@ public class Player : RequestBase
             throw new Exception("Failed to get Other Players Match History");
 
         return JsonSerializer.Deserialize<MatchHistoryObj>(resp.content.ToString());
-    }
+    }*/
 
     /// <summary>
     /// Gets Player Progression (Account Level)
