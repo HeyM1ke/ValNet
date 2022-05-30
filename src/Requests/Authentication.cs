@@ -65,17 +65,15 @@ public class Authentication : RequestBase
             response_type = "token id_token",
             scope = "account openid"
         };
-        var authResponse = new CurlResponse();
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i -X POST", false)
-                .Add("-H").Add("Content-Type: application/json")
-                .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
-                .Add("-d").Add(JsonSerializer.Serialize(authPayload, _jsonOptions))
-                .Add(authUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(authResponse.GetPipeTarget())
-            .ExecuteAsync();
+        var authResponse = await _user.AuthClient.PostAsync(authUrl, authPayload);
+
+
+        if (authResponse.StatusCode == HttpStatusCode.Forbidden)
+            throw new Exception($"Login Forbidden 403");
+
+        if (authResponse.StatusCode != HttpStatusCode.OK || authResponse.Content is null)
+            throw new Exception("Failed Login, please check credentials and try again.");
+        
 
         var loginPayload = new
         {
@@ -84,31 +82,21 @@ public class Authentication : RequestBase
             _user.loginData.password,
             remember = "true"
         };
-        var loginResponse = new CurlResponse<AuthorizationJson>(_jsonOptions);
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i -X PUT", false)
-                .Add("-H").Add("Content-Type: application/json")
-                .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
-                .Add("-H").Add($"Cookie: {string.Join("; ", authResponse.Cookies.Select(x => $"{x.Key}={x.Value}"))}")
-                .Add("-d").Add(JsonSerializer.Serialize(loginPayload, _jsonOptions))
-                .Add(authUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(loginResponse.GetPipeTarget())
-            .ExecuteAsync();
+        var loginResponse = await _user.AuthClient.PutAsync(authUrl, loginPayload);
 
-        if (loginResponse.Status == HttpStatusCode.Forbidden)
-            throw new Exception("Sorry, you are not allowed to login. " + loginResponse.Content);
+        if (loginResponse.StatusCode == HttpStatusCode.Forbidden)
+            throw new Exception($"Login Forbidden 403");
 
-        if (loginResponse.Status != HttpStatusCode.OK || loginResponse.Data is null)
+        if (loginResponse.StatusCode != HttpStatusCode.OK || loginResponse.Content is null)
             throw new Exception("Failed Login, please check credentials and try again.");
 
-        var authObj = loginResponse.Data;
+        var authstring = await loginResponse.Content.ReadAsStringAsync();
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(authstring);
         if (authObj.error is not null) throw new Exception("Error: Username/Password is incorrect");
 
-        foreach (var (name, value) in loginResponse.Cookies)
+        foreach (Cookie c in _user.AuthClient.GetClientCookies.GetAllCookies())
         {
-            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+            _user.UserClient.CookieContainer.Add(new Cookie( c.Name, c.Value, "/", c.Domain));
         }
 
         //Determine if Two Factor is needed
@@ -131,28 +119,19 @@ public class Authentication : RequestBase
             code,
             rememberDevice = true
         };
-        var authResponse = new CurlResponse<AuthorizationJson>();
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i -X PUT", false)
-                .Add("-H").Add("Content-Type: application/json")
-                .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
-                .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
-                .Add("-d").Add(JsonSerializer.Serialize(data, _jsonOptions))
-                .Add(authUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(authResponse.GetPipeTarget())
-            .ExecuteAsync();
-
-        if (authResponse.Status != HttpStatusCode.OK)
+        
+        var authResp = await _user.AuthClient.PutAsync(authUrl, data);
+        
+        if (authResp.StatusCode != HttpStatusCode.OK)
             throw new Exception("An Error has Occurred");
 
-        foreach (var (name, value) in authResponse.Cookies)
+        foreach (Cookie c in _user.AuthClient.GetClientCookies.GetAllCookies())
         {
-            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+            _user.UserClient.CookieContainer.Add(new Cookie( c.Name, c.Value, "/", c.Domain));
         }
 
-        var authObj = authResponse.Data;
+        var aString = await authResp.Content.ReadAsStringAsync();
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(aString);
         if (authObj.error is not null && authObj.error.Equals("multifactor_attempt_failed"))
             return new AuthenticationStatus
             {
@@ -171,15 +150,18 @@ public class Authentication : RequestBase
     private async Task<AuthenticationStatus> CompleteAuth(AuthorizationJson authObj)
     {
         ParseWebToken(authObj.response.parameters.uri);
-        _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
 
+        _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
+        _user.AuthClient.AddHeaderToClient("Authorization", $"Bearer {_user.tokenData.access}");
+        
         _user.tokenData.entitle = await GetEntitlementToken();
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
-
+        _user.AuthClient.AddHeaderToClient("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
+        
         _user.UserData = await GetUserData();
         _user.UserRegion = await GetUserRegion();
         GetCurrentGameVersion();
-        GetRiotXmppPasToken();
+        await GetRiotXmppPasToken();
         _user.AuthType = AuthType.Cloud;
 
         return new AuthenticationStatus
@@ -187,35 +169,7 @@ public class Authentication : RequestBase
             bIsAuthComplete = true
         };
     }
-
-    public async void AuthenticateWithToken(string redirectUrl)
-    {
-        // get initial cookies for auth
-        var initCookies = new RestRequest(cookieReauth, Method.Get);
-
-        /*var cookieData = new
-        {
-            client_id = "play-valorant-web-prod",
-            nonce = 1,
-            redirect_uri = "https://playvalorant.com/opt_in",
-            response_type = "token id_token",
-            scope = "account openid"
-        };*/
-        await _user.UserClient.ExecuteAsync(initCookies);
-
-        ParseWebToken(redirectUrl);
-        _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
-
-        _user.tokenData.entitle = await GetEntitlementToken();
-        _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
-
-        _user.UserData = await GetUserData();
-        _user.UserRegion = await GetUserRegion();
-        GetCurrentGameVersion();
-        GetRiotXmppPasToken();
-        _user.AuthType = AuthType.Cookie;
-    }
-
+    
     public async Task<AuthenticationStatus> AuthenticateWithSocket()
     {
         //Check for Lockfile
@@ -255,7 +209,7 @@ public class Authentication : RequestBase
         _user.tokenData.idToken = idToken.authorization.idToken.token;
         _user.UserRegion = await GetUserRegion();
         _user.UserData = await GetUserData();
-        GetRiotXmppPasToken();
+        await GetRiotXmppPasToken();
         GetCurrentGameVersion();
         _user.AuthType = AuthType.Socket;
 
@@ -275,47 +229,44 @@ public class Authentication : RequestBase
             response_type = "token id_token",
             scope = "account openid"
         };
+        
+        foreach (Cookie c in _user.UserClient.CookieContainer.GetAllCookies())
+        {
+            _user.AuthClient.CookieContainer.Add(new Cookie( c.Name, c.Value, "/", c.Domain));
+        }
 
-        var authResponse = new CurlResponse<AuthorizationJson>();
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i -X POST", false)
-                .Add("-H").Add("Content-Type: application/json")
-                .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
-                .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
-                .Add("-d").Add(JsonSerializer.Serialize(cookieData, _jsonOptions))
-                .Add(authUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(authResponse.GetPipeTarget())
-            .ExecuteAsync();
-
-        if (authResponse.Status == HttpStatusCode.Forbidden)
+        var authResponse = await _user.AuthClient.PostAsync(authUrl, cookieData);
+        
+        if (authResponse.StatusCode == HttpStatusCode.Forbidden)
             throw new Exception("Sorry, you are not allowed to login. " + authResponse.Content);
 
-        if (authResponse.Status != HttpStatusCode.OK)
+        if (authResponse.StatusCode != HttpStatusCode.OK)
             throw new Exception("Failed Login, please check credentials and try again.");
 
-        var authObj = authResponse.Data;
+        var authObj = JsonSerializer.Deserialize<AuthorizationJson>(await authResponse.Content.ReadAsStringAsync());
         if (authObj is null || authObj.response is null)
             throw new Exception("Could not authenticate properly.");
 
-        foreach (var (name, value) in authResponse.Cookies)
+        foreach (Cookie c in _user.AuthClient.GetClientCookies.GetAllCookies())
         {
-            _user.UserClient.CookieContainer.Add(new Cookie(name, value, "/", "riotgames.com"));
+            _user.UserClient.CookieContainer.Add(new Cookie( c.Name, c.Value, "/", c.Domain));
         }
 
         ParseWebToken(authObj.response.parameters.uri);
         _user.UserClient.AddDefaultHeader("Authorization", $"Bearer {_user.tokenData.access}");
-
+        _user.AuthClient.AddHeaderToClient("Authorization", $"Bearer {_user.tokenData.access}");;
+        
         _user.tokenData.entitle = await GetEntitlementToken();
+        
         _user.UserClient.AddDefaultHeader("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
-
+        _user.AuthClient.Client.DefaultRequestHeaders.Add("X-Riot-Entitlements-JWT", _user.tokenData.entitle);
+        
         _user.UserData = await GetUserData();
 
         _user.UserRegion = await GetUserRegion();
         
         GetCurrentGameVersion();
-        GetRiotXmppPasToken();
+        await GetRiotXmppPasToken();
         
         _user.AuthType = AuthType.Cookie;
     }
@@ -332,26 +283,14 @@ public class Authentication : RequestBase
 
     private async Task<string?> GetEntitlementToken()
     {
-        var entitlementsTokenResponse = new CurlResponse();
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i -X POST", false)
-                .Add("-H").Add("Content-Type: application/json")
-                .Add("-H").Add($"User-Agent: {_entitlementsUserAgent}")
-                .Add("-H").Add($"Authorization: Bearer {_user.tokenData.access}")
-                .Add("-d").Add("{}")
-                .Add(entitleUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(entitlementsTokenResponse.GetPipeTarget())
-            .ExecuteAsync();
-
-        if (entitlementsTokenResponse.Status != HttpStatusCode.OK)
-            throw new Exception("Failed to get entitlement token.");
-
-
+        var resp = await _user.AuthClient.PostAsync(entitleUrl);
+        
+        if (resp.StatusCode != HttpStatusCode.OK)
+            throw new Exception($"Failed to get entitlement token. {await resp.Content.ReadAsStringAsync()}");
+        
         // Testing new Json Parsing 
         var entitlement_token = "";
-        var respJson = JsonDocument.Parse(entitlementsTokenResponse.Content);
+        var respJson = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
         if (respJson.RootElement.TryGetProperty("entitlements_token", out var tokenElement))
             entitlement_token = tokenElement.GetString();
 
@@ -361,22 +300,14 @@ public class Authentication : RequestBase
 
     private async Task<RiotUserData?> GetUserData()
     {
-        var userInfoResponse = new CurlResponse<RiotUserData>();
-        await Cli.Wrap("curl")
-            .WithArguments(builder => builder
-                .Add("-i")
-                .Add("-H").Add($"User-Agent: {_entitlementsUserAgent}")
-                .Add("-H").Add($"Authorization: Bearer {_user.tokenData.access}")
-                .Add("-H").Add($"X-Riot-Entitlements-JWT: {_user.tokenData.entitle}")
-                .Add(userInfoUrl))
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(userInfoResponse.GetPipeTarget())
-            .ExecuteAsync();
-
-        if (userInfoResponse.Status != HttpStatusCode.OK)
+        
+        var reqResp = await _user.AuthClient.GetAsync(userInfoUrl);
+        
+        if (reqResp.StatusCode != HttpStatusCode.OK)
             throw new Exception("Failed to get UserData");
-
-        return userInfoResponse.Data;
+        
+        return JsonSerializer.Deserialize<RiotUserData>(await reqResp.Content.ReadAsStringAsync());
+        
     }
 
     private async Task<RiotRegion> GetUserRegion(string region = null)
@@ -528,7 +459,7 @@ public class Authentication : RequestBase
         return avaliblePatchLines;
     }
 
-    public async void GetRiotXmppPasToken()
+    public async Task GetRiotXmppPasToken()
     {
         var resp = await CustomRequest(xmppPasUrl, Method.Get);
         _user.tokenData.pasToken = resp.content.ToString();
