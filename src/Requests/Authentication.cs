@@ -69,10 +69,10 @@ public class Authentication : RequestBase
 
 
         if (authResponse.StatusCode == HttpStatusCode.Forbidden)
-            throw new Exception($"Login Forbidden 403");
+            throw new ValNetException($"Login Forbidden 403", authResponse.StatusCode, await authResponse.Content.ReadAsStringAsync());
 
         if (authResponse.StatusCode != HttpStatusCode.OK || authResponse.Content is null)
-            throw new Exception("Failed Login, please check credentials and try again.");
+            throw new ValNetException("Failed Login, please check credentials and try again.", authResponse.StatusCode, await authResponse.Content.ReadAsStringAsync());
         
 
         var loginPayload = new
@@ -85,10 +85,10 @@ public class Authentication : RequestBase
         var loginResponse = await _user.AuthClient.PutAsync(authUrl, loginPayload);
 
         if (loginResponse.StatusCode == HttpStatusCode.Forbidden)
-            throw new Exception($"Login Forbidden 403");
+            throw new ValNetException($"Login Forbidden 403", loginResponse.StatusCode, await loginResponse.Content.ReadAsStringAsync());
 
         if (loginResponse.StatusCode != HttpStatusCode.OK || loginResponse.Content is null)
-            throw new Exception("Failed Login, please check credentials and try again.");
+            throw new ValNetException("Failed Login, please check credentials and try again.", loginResponse.StatusCode, await loginResponse.Content.ReadAsStringAsync());
 
         var authstring = await loginResponse.Content.ReadAsStringAsync();
         var authObj = JsonSerializer.Deserialize<AuthorizationJson>(authstring);
@@ -286,7 +286,7 @@ public class Authentication : RequestBase
         var resp = await _user.AuthClient.PostAsync(entitleUrl);
         
         if (resp.StatusCode != HttpStatusCode.OK)
-            throw new Exception($"Failed to get entitlement token. {await resp.Content.ReadAsStringAsync()}");
+            throw new ValNetException($"Failed to get entitlement token.", resp.StatusCode, await resp.Content.ReadAsStringAsync());
         
         // Testing new Json Parsing 
         var entitlement_token = "";
@@ -304,7 +304,7 @@ public class Authentication : RequestBase
         var reqResp = await _user.AuthClient.GetAsync(userInfoUrl);
         
         if (reqResp.StatusCode != HttpStatusCode.OK)
-            throw new Exception("Failed to get UserData");
+            throw new ValNetException("Failed to get UserData", reqResp.StatusCode, await reqResp.Content.ReadAsStringAsync());
         
         return JsonSerializer.Deserialize<RiotUserData>(await reqResp.Content.ReadAsStringAsync());
         
@@ -363,7 +363,7 @@ public class Authentication : RequestBase
                 return RiotRegion.AP;
         }
 
-        return RiotRegion.AP;
+        return RiotRegion.UNKNOWN;
     }
 
     #endregion
@@ -440,23 +440,29 @@ public class Authentication : RequestBase
     // Switch back to private and change obj
     public async Task<List<PatchlineObj>> GetPlayerGameEntitlements()
     {
-        // "keystone.products.valorant.patchlines.pbe"
         var avaliblePatchLines = new List<PatchlineObj>();
         var resp = await CustomRequest(gameEntitlementUrl, Method.Get);
-
-        var doc = JsonDocument.Parse(resp.content.ToString());
-
-        foreach (var entitlement in doc.RootElement.EnumerateObject())
+        try
         {
-            var split = entitlement.Name.Split('.');
-            avaliblePatchLines.Add(new PatchlineObj
-            {
-                PatchlineName = split[split.Length - 1].ToUpper(),
-                PatchlinePath = split[split.Length - 1]
-            });
-        }
 
-        return avaliblePatchLines;
+            var doc = JsonDocument.Parse(resp.content.ToString());
+
+            foreach (var entitlement in doc.RootElement.EnumerateObject())
+            {
+                var split = entitlement.Name.Split('.');
+                avaliblePatchLines.Add(new PatchlineObj
+                {
+                    PatchlineName = split[split.Length - 1].ToUpper(),
+                    PatchlinePath = split[split.Length - 1]
+                });
+            }
+
+            return avaliblePatchLines;
+        }
+        catch (Exception ex)
+        {
+            throw new ValNetException("Error on Player Entitlements", HttpStatusCode.NotFound, resp.content.ToString());
+        }
     }
 
     public async Task GetRiotXmppPasToken()
