@@ -81,9 +81,15 @@ public class RiotUser
     /// </summary>
     public bool IsPlayerInGame => CheckPlayerInGame().Result;
 
-
+    public string UserAgentFormat = "RiotClient/51.0.0.4429735.4381201 {0} (Windows;10;;Professional, x64)";
     public RiotUser()
     {
+        UserSetup();
+    }
+
+    public RiotUser(string userAgentFormat)
+    {
+        UserAgentFormat = userAgentFormat;
         UserSetup();
     }
 
@@ -109,12 +115,12 @@ public class RiotUser
         var optionsWebClient = new RestClientOptions()
         {
             RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
-            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)"
+            UserAgent = string.Format(UserAgentFormat, "rso-auth")
         };
         System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var optionsClient = new RestClientOptions()
         {
-            UserAgent = "RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)"
+            UserAgent = string.Format(UserAgentFormat, "rso-auth")
         };
         
         AuthClient = new RequestClient();
