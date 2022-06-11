@@ -70,11 +70,13 @@ public class Authentication : RequestBase
             response_type = "token id_token",
             scope = "account openid"
         };
+        var ritoPlsStopThis = GenMD5();
         var authResponse = new CurlResponse();
         await Cli.Wrap("curl")
             .WithArguments(builder => builder
-                .Add("-i -X POST", false)
+                .Add("-i -X POST --http1.1 --tlsv1.3", false)
                 .Add("-H").Add("Content-Type: application/json")
+                .Add("-H").Add($"Cookie: did={ritoPlsStopThis}")
                 .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
                 .Add("-d").Add(JsonSerializer.Serialize(authPayload, _jsonOptions))
                 .Add(authUrl))
@@ -99,7 +101,7 @@ public class Authentication : RequestBase
         var loginResponse = new CurlResponse<AuthorizationJson>(_jsonOptions);
         await Cli.Wrap("curl")
             .WithArguments(builder => builder
-                .Add("-i -X PUT", false)
+                .Add("-i -X PUT --http1.1 --tlsv1.3", false)
                 .Add("-H").Add("Content-Type: application/json")
                 .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
                 .Add("-H").Add($"Cookie: {string.Join("; ", authResponse.Cookies.Select(x => $"{x.Key}={x.Value}"))}")
@@ -144,12 +146,13 @@ public class Authentication : RequestBase
             response_type = "token id_token",
             scope = "account openid"
         };
-
+        var ritoPlsStopThis = GenMD5();
         var authResponse = new CurlResponse<AuthorizationJson>();
         await Cli.Wrap("curl")
             .WithArguments(builder => builder
-                .Add("-i -X POST", false)
+                .Add("-i -X POST --http1.1 --tlsv1.3", false)
                 .Add("-H").Add("Content-Type: application/json")
+                .Add("-H").Add($"Cookie: did={ritoPlsStopThis}")
                 .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
                 .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
                 .Add("-d").Add(JsonSerializer.Serialize(cookieData, _jsonOptions))
@@ -197,10 +200,12 @@ public class Authentication : RequestBase
             rememberDevice = true
         };
         var authResponse = new CurlResponse<AuthorizationJson>();
+        var ritoPlsStopThis = GenMD5();
         await Cli.Wrap("curl")
             .WithArguments(builder => builder
-                .Add("-i -X PUT", false)
+                .Add("-i -X PUT --http1.1 --tlsv1.3", false)
                 .Add("-H").Add("Content-Type: application/json")
+                .Add("-H").Add($"Cookie: did={ritoPlsStopThis}")
                 .Add("-H").Add($"User-Agent: {_rsoUserAgent}")
                 .Add("-H").Add($"Cookie: {string.Join("; ", _user.UserClient.CookieContainer.GetAllCookies().Select(x => $"{x.Name}={x.Value}"))}")
                 .Add("-d").Add(JsonSerializer.Serialize(data, _jsonOptions))
@@ -305,7 +310,7 @@ public class Authentication : RequestBase
         var entitlementsTokenResponse = new CurlResponse();
         await Cli.Wrap("curl")
             .WithArguments(builder => builder
-                .Add("-i -X POST", false)
+                .Add("-i -X POST --http1.1 --tlsv1.3", false)
                 .Add("-H").Add("Content-Type: application/json")
                 .Add("-H").Add($"User-Agent: {_entitlementsUserAgent}")
                 .Add("-H").Add($"Authorization: Bearer {_user.tokenData.access}")
@@ -770,7 +775,28 @@ public class Authentication : RequestBase
     {
         var resp = await CustomRequest(xmppPasUrl, Method.Get);
         _user.tokenData.pasToken = resp.content.ToString();
+    }
+
+    public static string GenMD5()
+    {
+        string input = "";
+        Random rand = new Random();
         
+        int stringlen = rand.Next(10, 16);
+        for (int i = 0; i < stringlen; i++)
+        {
+            var randValue = rand.Next(0, 26);
+            var letter = Convert.ToChar(randValue + 65);
+            input += letter;
+        }
+        
+        using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+        {
+            byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+            byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+            return Convert.ToHexString(hashBytes);
+        }
     }
     #endregion
 }
